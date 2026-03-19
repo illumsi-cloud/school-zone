@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>충주 초·중학교 통학구역 검색</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f4f7f9;color:#333;line-height:1.6;}
+.container{max-width:860px;margin:0 auto;padding:20px;}
+
+/* 관리자 CSS 제거 (전산팀 배포용) */
+
+/* ── 사용자 화면 ── */
+#userView{display:none;}
+.header-title{text-align:center;color:#0046a0;margin:24px 0 18px;font-size:26px;font-weight:900;letter-spacing:-1px;}
+.year-tabs{display:flex;justify-content:center;margin-bottom:22px;gap:10px;flex-wrap:wrap;}
+.year-tab{padding:11px 32px;font-size:15px;font-weight:bold;border:2px solid #0046a0;background:#fff;color:#0046a0;border-radius:30px;cursor:pointer;transition:all .2s;}
+.year-tab.active{background:#0046a0;color:#fff;box-shadow:0 4px 12px rgba(0,70,160,.2);}
+
+/* ── 안내박스 ── */
+.notice-box{background:#fff;border:1px solid #eaeaea;padding:16px 18px;border-radius:10px;font-size:13.5px;margin-bottom:18px;box-shadow:0 2px 4px rgba(0,0,0,.02);}
+.notice-line{margin-bottom:8px;border-left:3px solid #adc6ff;padding-left:11px;}
+.notice-line:last-child{margin-bottom:0;border-left-color:#ccc;}
+.notice-box a{color:#0046a0;text-decoration:underline;font-weight:bold;}
+.highlight{background:#ffff00;padding:1px 4px;border-radius:3px;font-weight:bold;}
+
+/* ── 검색창 ── */
+.search-wrap{position:relative;margin-bottom:22px;}
+.search-input{width:100%;padding:16px 52px 16px 18px;font-size:17px;border:2px solid #0046a0;border-radius:12px;outline:none;box-shadow:0 4px 12px rgba(0,70,160,.08);font-family:inherit;}
+.search-input:focus{border-color:#003380;box-shadow:0 4px 16px rgba(0,70,160,.15);}
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;color:#999;cursor:pointer;display:none;line-height:1;}
+
+/* ── 자동완성 드롭다운 ── */
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #0046a0;border-radius:10px;box-shadow:0 8px 24px rgba(0,70,160,.13);z-index:100;overflow:hidden;display:none;max-height:320px;overflow-y:auto;}
+.ac-group-label{padding:7px 14px 4px;font-size:11.5px;font-weight:bold;color:#888;letter-spacing:.5px;background:#f8f9fa;border-bottom:1px solid #eee;}
+.ac-item{padding:10px 16px;cursor:pointer;font-size:15px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #f5f5f5;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.focused{background:#e8f0fe;}
+.ac-item .icon{font-size:16px;flex-shrink:0;}
+.ac-item .label{flex:1;}
+.ac-item .category{font-size:11.5px;color:#888;flex-shrink:0;}
+.ac-item mark{background:none;color:#0046a0;font-weight:bold;}
+
+/* ── 결과 ── */
+.empty-msg{text-align:center;padding:50px 20px;background:#fff;border-radius:12px;border:1px solid #ddd;font-size:17px;color:#666;display:none;}
+.result-summary{font-size:14px;color:#666;margin-bottom:12px;padding-left:2px;}
+.result-summary strong{color:#0046a0;}
+
+/* ── 결과 카드 ── */
+.result-card{
+  background:#fff;border-radius:14px;margin-bottom:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  border:1px solid #e4eaf0;overflow:hidden;
+  animation:fadeUp .18s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card-top{display:flex;min-height:80px;}
+.school-box{flex:1;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:3px;}
+.school-box.elem{background:#f0fdf4;border-bottom:3px solid #16a34a;}
+.school-box.mid-box{background:#eff6ff;border-bottom:3px solid #2563eb;border-left:1px solid #d1e8ff;}
+.s-label{font-size:10.5px;font-weight:700;letter-spacing:.5px;margin-bottom:1px;}
+.school-box.elem .s-label{color:#15803d;}
+.school-box.mid-box .s-label{color:#1d4ed8;}
+.s-name{font-size:21px;font-weight:900;line-height:1.15;letter-spacing:-0.3px;}
+.school-box.elem .s-name{color:#14532d;}
+.school-box.mid-box .s-name{color:#1e3a8a;}
+.s-sub{font-size:11.5px;font-weight:500;margin-top:1px;}
+.school-box.elem .s-sub{color:#16a34a;}
+.school-box.mid-box .s-sub{color:#3b82f6;}
+.card-body{padding:10px 14px;display:flex;flex-direction:column;gap:7px;border-top:1px solid #f0f4f8;}
+.addr-row{
+  display:flex;align-items:center;gap:9px;
+  background:#f8fafc;border-radius:7px;
+  padding:9px 12px;font-size:14px;color:#374151;
+}
+.addr-icon{width:24px;height:24px;flex-shrink:0;border-radius:5px;background:#94a3b8;display:flex;align-items:center;justify-content:center;}
+.addr-icon svg{width:13px;height:13px;fill:#fff;}
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;line-height:1.5;}
+.tag-apt  {background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;}
+.tag-excl {background:#fff1f2;color:#be123c;border:1px solid #fecdd3;}
+.tag-ejoint{background:#f0fdf4;color:#166534;border:1px solid #86efac;}
+.tag-eway  {background:#dcfce7;color:#15803d;border:1px solid #4ade80;}
+.tag-mjoint{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
+.tag-mway  {background:#e0f2fe;color:#075985;border:1px solid #7dd3fc;}
+.tag-note  {background:#f8fafc;color:#64748b;border:1px solid #cbd5e1;}
+
+/* ── 초등/중등 2컬럼 태그 영역 ── */
+.tags-split{display:flex;gap:0;border-top:1px solid #f0f4f8;}
+.tags-col{flex:1;padding:10px 14px;display:flex;flex-direction:column;gap:5px;}
+.tags-col.elem-col{border-right:1px solid #f0f4f8;}
+.tags-col-label{font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:2px;}
+.tags-col.elem-col .tags-col-label{color:#15803d;}
+.tags-col.mid-col  .tags-col-label{color:#1d4ed8;}
+.tags-col .tag{width:fit-content;}
+
+/* ── 푸터 ── */
+.footer-text{font-size:13px;color:#bbb;text-align:center;margin-top:36px;border-top:1px solid #eee;padding-top:22px;position:relative;}
+.btn-admin-return{position:absolute;right:0;bottom:0;background:none;border:none;color:#ccc;cursor:pointer;text-decoration:underline;font-size:12px;}
+
+/* ── 범례 ── */
+.notice-legend{border-left-color:#e2e8f0 !important;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+.legend-item{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#555;}
+.leg-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;}
+.leg-tag.ejoint{background:#f0fdf4;color:#166534;border:1px solid #86efac;}
+.leg-tag.eway{background:#dcfce7;color:#15803d;border:1px solid #4ade80;}
+
+/* ── 빈 화면 ── */
+#emptyYearMsg{display:none;text-align:center;padding:50px 20px;background:#fff;border-radius:12px;border:1px solid #ddd;font-size:17px;color:#666;}
+#searchArea{display:none;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- 관리자 패널 없음 (전산팀 배포용) -->
+
+<!-- ════════ 사용자 화면 ════════ -->
+<div id="userView" style="display:block;">
+  <div id="loadingMsg" style="text-align:center;padding:40px;font-size:16px;color:#666;display:none;">⏳ 데이터를 불러오는 중입니다...</div>
+  <h2 class="header-title" id="siteTitle"></h2>
+  <div class="year-tabs" id="tabContainer"></div>
+  <div id="emptyYearMsg"><span id="emptyYearText"></span></div>
+
+  <div id="searchArea">
+    <div class="notice-box" id="noticeBox"></div>
+
+    <!-- 검색창 -->
+    <div class="search-wrap" id="searchWrap">
+      <input type="text" id="searchInput" class="search-input"
+             placeholder="🔍  동·리, 통·반, 아파트명, 초등학교명, 중학교명 입력"
+             autocomplete="off">
+      <button class="search-clear" id="clearBtn" onclick="clearSearch()">✕</button>
+      <div class="ac-dropdown" id="acDropdown"></div>
+    </div>
+
+    <div class="result-summary" id="resultSummary"></div>
+    <div id="results"></div>
+    <div class="empty-msg" id="emptyMsg">검색 결과가 없습니다.</div>
+  </div>
+
+  <div class="footer-text">
+    충청북도충주교육지원청
+  </div>
+</div>
+</div>
+
+<script>
+// ┌─────────────────────────────────────────┐
+// │  ✏️  관리자 설정 구역 — 여기만 수정하세요  │
+// └─────────────────────────────────────────┘
+
+const 설정 = {
+  // 서비스 제목
+  제목: "충주 초·중학교 통학구역 검색",
+
+  // 학년도 목록 (새 학년도 추가 시 숫자만 추가)
+  학년도목록: [2026, 2027, 2028, 2029, 2030],
+
+  // 링크
+  행정복지센터링크: "https://www.chungju.go.kr/town/",
+  학구도링크: "https://schoolzone.emac.kr/",
+
+  // 안내문
+  안내문1: "본 서비스는 충주시 이통반 설치조례에 따른 행정 통/반/번지 기준으로 운영됩니다. 통반 주소 정보는 관할 행정복지센터(충주시 통합읍면동)에서 확인하세요.",
+  안내문2: "학구도는 학구도안내서비스(GIS)에서 확인 가능하나, 데이터 갱신 지연으로 최신 정보가 아닐 수 있습니다. 정확한 최신 통학구역은 본 서비스를 이용해주세요.",
+};
+
+// ─────────────────────────────────────────
+// 이하 코드는 수정하지 마세요
+// ─────────────────────────────────────────
+
+// ══════════════════════════════════════════
+// 상수 & 상태
+// ══════════════════════════════════════════
+const HOME_SVG = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+
+// 충주시학교군 추첨 중학교 약칭 → 정식명 매핑
+const 추첨중학교 = {
+  '충일중':1,'충주미덕중':1,'미덕중':1,
+  '충주북여자중':1,'북여중':1,'충주북여중':1,
+  '충주여자중':1,'여중':1,'충주여중':1,
+  '충주예성여자중':1,'예성여중':1,'충주예성여중':1,
+  '충주중앙중':1,'중앙중':1,
+  '충주중':1,'칠금중':1,'탄금중':1
+};
+
+let database = {};   // { '2026': [...rows] }
+let currentYear = null;
+// 자동완성용 목록
+let AC = { 동리:[], 초등:[], 중학구:[], 아파트:[] };
+let acFocusIdx = -1;
+
+// ══════════════════════════════════════════
+// 서버 CSV 자동 로딩
+// ══════════════════════════════════════════
+
+function allYears() {
+  return Object.keys(database).sort();
+}
+
+async function loadAllCSV() {
+  const 로딩중 = document.getElementById('loadingMsg');
+  if (로딩중) 로딩중.style.display = 'block';
+
+  const promises = 설정.학년도목록.map(year =>
+    fetch('./' + year + '.csv')
+      .then(res => res.ok ? res.text() : null)
+      .then(text => {
+        if (!text) return;
+        Papa.parse(text, {
+          header: true, skipEmptyLines: true,
+          complete(res) {
+            if (res.data.length > 0) database[String(year)] = res.data;
+          }
+        });
+      })
+      .catch(() => null)
+  );
+
+  await Promise.all(promises);
+  if (로딩중) 로딩중.style.display = 'none';
+
+  const years = allYears();
+  if (years.length === 0) {
+    document.getElementById('tabContainer').innerHTML =
+      '<p style="color:#e55;text-align:center;padding:30px;">데이터를 불러올 수 없습니다. 관리자에게 문의하세요.</p>';
+    return;
+  }
+  switchYear(years[years.length - 1]);
+}
+
+// ══════════════════════════════════════════
+// 연도 전환
+// ══════════════════════════════════════════
+function switchYear(year) {
+  currentYear = year;
+  // 탭 렌더
+  const container = document.getElementById('tabContainer');
+  container.innerHTML = '';
+  Object.keys(database).sort().forEach(y => {
+    const btn = document.createElement('button');
+    btn.className = 'year-tab' + (y === year ? ' active' : '');
+    btn.onclick = () => switchYear(y);
+    btn.innerText = y + '학년도';
+    container.appendChild(btn);
+  });
+
+  if (database[year]) {
+    document.getElementById('emptyYearMsg').style.display = 'none';
+    document.getElementById('searchArea').style.display = 'block';
+    buildAC(database[year]);
+    clearSearch();
+  } else {
+    document.getElementById('searchArea').style.display = 'none';
+    document.getElementById('emptyYearMsg').style.display = 'block';
+    document.getElementById('emptyYearText').innerText =
+      year + '학년도 통학구역 안내는 11월 말 제공 예정입니다.';
+  }
+}
+
+// ══════════════════════════════════════════
+// 자동완성 목록 구성
+// ══════════════════════════════════════════
+function buildAC(rows) {
+  AC.동리    = [...new Set(rows.map(r => r['법정동(읍∙면)']||'').filter(Boolean))].sort();
+  AC.초등    = [...new Set(rows.map(r => r['초등학교명']||'').filter(Boolean))].sort();
+  // 중학구 목록 + 추첨학교 약칭 개별 항목 추가
+  const 중학구기본 = [...new Set(rows.map(r => r['중학구']||'').filter(Boolean))].sort();
+  AC.중학구  = 중학구기본;
+  // 추첨 약칭 목록 (자동완성 전용)
+  AC.추첨약칭 = [
+    '충일중','충주미덕중','충주북여자중','북여중',
+    '충주여자중','여중','충주예성여자중','예성여중',
+    '충주중앙중','중앙중','충주중','칠금중','탄금중'
+  ];
+  AC.아파트  = [...new Set(
+    rows.flatMap(r => (r['공동주택명']||'').split('/').map(s=>s.trim()).filter(Boolean))
+  )].sort();
+}
+
+// ══════════════════════════════════════════
+// 검색창 이벤트
+// ══════════════════════════════════════════
+const searchInput = document.getElementById('searchInput');
+const acDropdown  = document.getElementById('acDropdown');
+const clearBtn    = document.getElementById('clearBtn');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if (q.length < 1) { hideAC(); clearResults(); return; }
+  showAC(q);
+  // 2글자 이상이면 실시간 검색도 실행
+  if (q.length >= 2) performSearch(q, null, null);
+  else clearResults();
+});
+
+searchInput.addEventListener('keydown', function(e) {
+  const items = acDropdown.querySelectorAll('.ac-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acFocusIdx = Math.min(acFocusIdx + 1, items.length - 1);
+    updateACFocus(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acFocusIdx = Math.max(acFocusIdx - 1, 0);
+    updateACFocus(items);
+  } else if (e.key === 'Enter') {
+    if (acFocusIdx >= 0 && items[acFocusIdx]) {
+      items[acFocusIdx].click();
+    } else {
+      hideAC();
+      performSearch(searchInput.value.trim(), null, null);
+    }
+  } else if (e.key === 'Escape') {
+    hideAC();
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
+
+function updateACFocus(items) {
+  items.forEach((el, i) => el.classList.toggle('focused', i === acFocusIdx));
+  if (items[acFocusIdx]) items[acFocusIdx].scrollIntoView({block:'nearest'});
+}
+
+function hideAC() { acDropdown.style.display = 'none'; acFocusIdx = -1; }
+
+function clearSearch() {
+  searchInput.value = '';
+  clearBtn.style.display = 'none';
+  hideAC();
+  clearResults();
+}
+
+function clearResults() {
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('resultSummary').innerHTML = '';
+  document.getElementById('emptyMsg').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// 자동완성 드롭다운 렌더
+// ══════════════════════════════════════════
+function showAC(q) {
+  const norm = q.replace(/\s/g,'').toLowerCase();
+  const groups = [];
+
+  // 동·리
+  const 동리hits = AC.동리.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+  if (동리hits.length) groups.push({ label:'🏘  동·리', type:'dong', items: 동리hits.slice(0,5) });
+
+  // 초등학교
+  const 초등hits = AC.초등.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+  if (초등hits.length) groups.push({ label:'🏫  초등학교', type:'elem', items: 초등hits.slice(0,5) });
+
+  // 중학교·중학구
+  const 중hits = AC.중학구.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+  // 추첨 약칭 검색 (탄금중, 칠금중 등 개별 표시)
+  const 약칭hits = (AC.추첨약칭||[]).filter(k =>
+    k.replace(/\s/g,'').toLowerCase().includes(norm)
+  );
+  // "충주시학교군(추첨)" 자체 검색
+  const 추첨직접 = norm.includes('추첨') || norm.includes('충주시학교군') || norm.includes('학교군');
+  let mitems = [...중hits];
+  약칭hits.forEach(k => { if (!mitems.includes(k)) mitems.push(k); });
+  if (추첨직접 && !mitems.includes('충주시학교군(추첨)')) mitems.push('충주시학교군(추첨)');
+  if (mitems.length) {
+    groups.push({ label:'🎓  중학교·중학구', type:'mid', items: mitems.slice(0,6) });
+  }
+
+  // 아파트
+  const 아파트hits = AC.아파트.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+  if (아파트hits.length) groups.push({ label:'🏢  아파트·공동주택', type:'apt', items: 아파트hits.slice(0,5) });
+
+  if (!groups.length) { hideAC(); return; }
+
+  acDropdown.innerHTML = '';
+  acFocusIdx = -1;
+  groups.forEach(g => {
+    const glabel = document.createElement('div');
+    glabel.className = 'ac-group-label';
+    glabel.textContent = g.label;
+    acDropdown.appendChild(glabel);
+
+    g.items.forEach(val => {
+      const div = document.createElement('div');
+      div.className = 'ac-item';
+      const icon = g.type==='dong'?'📍':g.type==='elem'?'🏫':g.type==='mid'?'🎓':'🏢';
+      div.innerHTML = `<span class="icon">${icon}</span><span class="label">${highlight(val, norm)}</span>`;
+      div.addEventListener('click', () => {
+        searchInput.value = val;
+        clearBtn.style.display = 'block';
+        hideAC();
+        performSearch(val, g.type, val);
+      });
+      acDropdown.appendChild(div);
+    });
+  });
+  acDropdown.style.display = 'block';
+}
+
+function highlight(text, q) {
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return text.slice(0,idx) + '<mark>' + text.slice(idx, idx+q.length) + '</mark>' + text.slice(idx+q.length);
+}
+
+// ══════════════════════════════════════════
+// 검색 실행
+// ══════════════════════════════════════════
+function performSearch(q, type, exactVal) {
+  if (!database[currentYear]) return;
+  const rows = database[currentYear];
+  const norm = q.replace(/\s/g,'').toLowerCase();
+
+  let results = [];
+
+  if (type === 'dong') {
+    // 동·리 정확 매칭
+    results = rows.filter(r => (r['법정동(읍∙면)']||'') === exactVal);
+  } else if (type === 'elem') {
+    // 초등학교 정확 매칭
+    results = rows.filter(r => (r['초등학교명']||'') === exactVal);
+  } else if (type === 'mid') {
+    // 중학구 정확 매칭
+    if (exactVal === '충주시학교군(추첨)') {
+      results = rows.filter(r => (r['중학구']||'').includes('추첨'));
+    } else if ((AC.추첨약칭||[]).includes(exactVal)) {
+      // 추첨 약칭 선택 → 충주시학교군(추첨) 전체 표시 + 상단에 안내
+      results = rows.filter(r => (r['중학구']||'').includes('추첨'));
+    } else {
+      results = rows.filter(r => (r['중학구']||'') === exactVal);
+    }
+  } else if (type === 'apt') {
+    // 아파트 정확 매칭
+    results = rows.filter(r => (r['공동주택명']||'').includes(exactVal));
+  } else {
+    // 자유 검색 — 중학구 컬럼 제외 (탄금중 등 추첨학교 약칭으로 인한 오매칭 방지)
+    results = rows.filter(r => {
+      const haystack = [
+        r['초등학교명'], r['법정동(읍∙면)'], r['법정리(통)'],
+        r['행정리(반)'], r['공동주택명'],
+        r['공동학구 초등학교'], r['공동(일방)학구 초등학교'], r['참고']
+      ].join(' ').replace(/\s/g,'').toLowerCase();
+      return haystack.includes(norm);
+    });
+  }
+
+  renderResults(results, q);
+}
+
+// ══════════════════════════════════════════
+// 결과 렌더
+// ══════════════════════════════════════════
+function renderResults(results, q) {
+  const resultDiv  = document.getElementById('results');
+  const summaryDiv = document.getElementById('resultSummary');
+  const emptyMsg   = document.getElementById('emptyMsg');
+
+  resultDiv.innerHTML = '';
+  emptyMsg.style.display = 'none';
+
+  if (!results.length) {
+    summaryDiv.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+
+  summaryDiv.innerHTML = `<strong>${results.length}건</strong>의 결과가 있습니다.`;
+
+  results.slice(0, 80).forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+
+    // 중학구 표시
+    const mid = (r['중학구']||'').trim();
+    const is추첨 = mid.includes('추첨');
+
+    // 주소 구성
+    const dong  = r['법정동(읍∙면)'] || '';
+    const tong  = r['법정리(통)']    || '';
+    const ban   = r['행정리(반)']    || '';
+    const bunji = r['구역(번지)']    || '';
+    const addrParts = [dong, tong, ban, bunji].filter(Boolean).join(' ');
+
+    // 데이터 추출
+    const apt   = (r['공동주택명']||'').trim();
+    const excl  = (r['제외 구역(번지)']||'').trim();
+    const ejoin = (r['공동학구 초등학교']||'').trim();
+    const eway  = (r['공동(일방)학구 초등학교']||'').trim();
+    const mjoin = (r['중학교 공동학구']||'').trim();
+    const mway  = (r['중학교 공동(일방)학구']||'').trim();
+    const note  = (r['참고']||'').trim();
+
+    // 초등 태그 (왼쪽)
+    let elemTags = '';
+    if (ejoin) elemTags += `<span class="tag tag-ejoint">🚸 공동학구: ${ejoin}</span>`;
+    if (eway)  elemTags += `<span class="tag tag-eway">🌳 공동(일방)학구: ${eway}</span>`;
+
+    // 중등 태그 (오른쪽)
+    let midTags = '';
+    if (mjoin) midTags += `<span class="tag tag-mjoint">🚸 중등 공동학구: ${mjoin}</span>`;
+    if (mway)  midTags += `<span class="tag tag-mway">🌳 중등 공동(일방)학구: ${mway}</span>`;
+
+    // 공통 태그 (아파트·제외·참고 — 주소 아래)
+    let commonTags = '';
+    if (apt)  commonTags += `<span class="tag tag-apt">🏢 ${apt}</span>`;
+    if (excl) commonTags += `<span class="tag tag-excl">⚠️ ${excl}</span>`;
+    if (note) commonTags += `<span class="tag tag-note">📌 ${note}</span>`;
+
+    const hasSplit = elemTags || midTags;
+
+    // 중학구 표시명
+    const midLabel = is추첨
+      ? `충주시학교군<span class="s-sub">(추첨배정)</span>`
+      : `${mid.replace(/중학구$/,'중학교')}`;
+
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="school-box elem">
+          <span class="s-label">🌿 초등학교</span>
+          <span class="s-name">${r['초등학교명']||''}</span>
+        </div>
+        <div class="school-box mid-box">
+          <span class="s-label">🔵 중학교 / 중학구</span>
+          <span class="s-name">${midLabel}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="addr-row">
+          <div class="addr-icon">${HOME_SVG}</div>
+          <span>${addrParts || '(주소 정보 없음)'}</span>
+        </div>
+      </div>
+      ${(hasSplit || commonTags) ? `
+      <div class="tags-split">
+        <div class="tags-col elem-col">
+          ${(commonTags || elemTags) ? `<div class="tags-col-label">🌿 초등 학구 정보</div>` : ''}
+          ${commonTags}
+          ${elemTags}
+        </div>
+        <div class="tags-col mid-col">
+          ${midTags ? `<div class="tags-col-label">🔵 중등 학구 정보</div>${midTags}` : ''}
+        </div>
+      </div>` : ''}
+    `;
+    resultDiv.appendChild(card);
+  });
+
+  if (results.length > 80) {
+    summaryDiv.innerHTML = `<strong>${results.length}건</strong> 중 상위 80건 표시 — 검색어를 더 구체적으로 입력하세요.`;
+  }
+}
+</script>
+</body>
+</html>
