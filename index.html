@@ -7,8 +7,6 @@
     <style>
         body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; padding: 0; margin: 0; background: #f4f7f9; color: #333; line-height: 1.6; }
         .container { max-width: 850px; margin: 40px auto; padding: 0 20px; }
-
-        /* ── 관리자 패널 ── */
         #adminView { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid #0046a0; }
         .admin-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
         .admin-header h2 { color: #2c3e50; margin: 0; font-size: 24px; }
@@ -17,46 +15,30 @@
         .year-select { padding: 10px 15px; font-size: 15px; border-radius: 6px; border: 1px solid #0046a0; color: #0046a0; font-weight: bold; outline: none; }
         .file-input { border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 14px; }
         .btn-empty-tab { background: #fff; border: 2px solid #6c757d; color: #6c757d; padding: 9px 15px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .guide-box { background:#fff; border:1px solid #ddd; padding:15px; border-radius:8px; margin-top:20px; font-size:13.5px; color:#444; line-height:1.6; text-align:left; display:inline-block; max-width:600px; }
         .upload-status { margin-top: 25px; padding: 20px; border-radius: 8px; background: #eef2f7; font-size: 15px; }
         .btn-launch { display: block; width: 100%; padding: 15px; background: #0046a0; color: #fff; font-size: 18px; font-weight: bold; text-align: center; border: none; border-radius: 8px; cursor: pointer; margin-top: 30px; }
-
-        /* ── 사용자 화면 ── */
         #userView { display: none; }
         .header-title { text-align: center; color: #0046a0; margin-bottom: 20px; font-size: 28px; font-weight: 900; letter-spacing: -1px; }
         .year-tabs { display: flex; justify-content: center; margin-bottom: 25px; gap: 10px; flex-wrap: wrap; }
         .year-tab { padding: 12px 35px; font-size: 16px; font-weight: bold; border: 2px solid #0046a0; background: #fff; color: #0046a0; border-radius: 30px; cursor: pointer; transition: all 0.2s; }
         .year-tab.active { background: #0046a0; color: #fff; box-shadow: 0 4px 10px rgba(0,70,160,0.2); }
         #searchArea { display: none; }
-
-        /* ── 안내박스 ── */
         .notice-box { background: #fff; border: 1px solid #eaeaea; padding: 18px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .notice-line { margin-bottom: 8px; border-left: 3px solid #adc6ff; padding-left: 12px; }
         .notice-line:last-child { margin-bottom: 0; border-left: 3px solid #ccc; }
         .notice-box a { color: #0046a0; text-decoration: underline; font-weight: bold; }
         .highlight { background: #ffff00; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
-
-        /* ── 검색창 (코드11 개선) ── */
         .search-wrap { position: relative; margin-bottom: 22px; }
         .search-input { width: 100%; padding: 18px 52px 18px 18px; font-size: 17px; border: 2px solid #0046a0; border-radius: 12px; outline: none; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,70,160,.08); font-family: inherit; }
         .search-input:focus { border-color: #003380; }
         .search-clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #999; cursor: pointer; display: none; line-height: 1; }
-
-        /* ── 자동완성 드롭다운 (코드11) ── */
         .ac-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1.5px solid #0046a0; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,70,160,.13); z-index: 100; overflow: hidden; display: none; max-height: 320px; overflow-y: auto; }
         .ac-group-label { padding: 7px 14px 4px; font-size: 11.5px; font-weight: bold; color: #888; letter-spacing: .5px; background: #f8f9fa; border-bottom: 1px solid #eee; }
         .ac-item { padding: 10px 16px; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #f5f5f5; }
-        .ac-item:last-child { border-bottom: none; }
         .ac-item:hover, .ac-item.focused { background: #e8f0fe; }
         .ac-item .icon { font-size: 16px; flex-shrink: 0; }
-        .ac-item .label { flex: 1; }
         .ac-item mark { background: none; color: #0046a0; font-weight: bold; }
-
-        /* ── 결과 요약 ── */
-        .empty-message { text-align: center; padding: 60px 20px; background: #fff; border-radius: 12px; border: 1px solid #ddd; font-size: 18px; color: #555; display: none; }
-        .result-summary { font-size: 14px; color: #666; margin-bottom: 12px; padding-left: 2px; }
-        .result-summary strong { color: #0046a0; }
-
-        /* ── 결과 카드 (코드11 개선) ── */
         .result-card { background: #fff; border-radius: 14px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); border: 1px solid #e4eaf0; overflow: hidden; animation: fadeUp .18s ease; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
         .card-top { display: flex; min-height: 80px; }
@@ -74,41 +56,23 @@
         .addr-row { display: flex; align-items: center; gap: 9px; background: #f8fafc; border-radius: 7px; padding: 9px 12px; font-size: 14px; color: #374151; }
         .addr-icon { width: 24px; height: 24px; flex-shrink: 0; border-radius: 5px; background: #94a3b8; display: flex; align-items: center; justify-content: center; }
         .addr-icon svg { width: 13px; height: 13px; fill: #fff; }
-
-        /* ── 태그 (코드11) ── */
         .tag { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; line-height: 1.5; }
-        .tag-apt   { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
-        .tag-excl  { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
-        .tag-ejoint{ background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
-        .tag-eway  { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; }
-        .tag-mjoint{ background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
-        .tag-mway  { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
-        .tag-note  { background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1; }
-
-        /* ── 초등/중등 분리 태그 영역 (코드11 핵심 개선) ── */
+        .tag-apt { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+        .tag-excl { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+        .tag-ejoint { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+        .tag-eway { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; }
+        .tag-mjoint { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
+        .tag-mway { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
         .tags-split { display: flex; border-top: 1px solid #f0f4f8; }
         .tags-col { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; }
         .tags-col.elem-col { border-right: 1px solid #f0f4f8; }
-        .tags-col-label { font-size: 10px; font-weight: 700; letter-spacing: .4px; margin-bottom: 2px; }
-        .tags-col.elem-col .tags-col-label { color: #15803d; }
-        .tags-col.mid-col  .tags-col-label { color: #1d4ed8; }
         .tags-col .tag { width: fit-content; }
-
-        /* ── 범례 ── */
-        .notice-legend { border-left-color: #e2e8f0 !important; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-        .leg-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .leg-tag.ejoint { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
-        .leg-tag.eway   { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; }
-
-        /* ── 푸터 ── */
-        .footer-text { font-size: 13px; color: #bbb; text-align: center; margin-top: 40px; border-top: 1px solid #eee; padding-top: 25px; position: relative; }
+        .footer-text { font-size: 13px; color: #bbb; text-align: center; margin-top: 40px; border-top: 1px solid #eee; padding-top: 25px; position: relative; min-height: 20px; }
         .btn-admin-return { position: absolute; right: 0; bottom: 0; background: none; border: none; color: #ccc; cursor: pointer; text-decoration: underline; font-size: 12px; }
     </style>
 </head>
 <body>
 <div class="container">
-
-    <!-- ════════ 관리자 패널 (코드10_3수정 원본) ════════ -->
     <div id="adminView">
         <div class="admin-header"><h2>⚙️ 시스템 웹마스터 설정 패널</h2></div>
         <div class="admin-controls">
@@ -119,84 +83,77 @@
                     <option value="2028">2028학년도</option>
                     <option value="2029">2029학년도</option>
                     <option value="2030">2030학년도</option>
+                    <option value="2031">2031학년도</option>
                 </select>
                 <input type="file" id="fileInput" class="file-input" accept=".csv">
                 <button class="btn-empty-tab" onclick="addEmptyNoticeTab()">+ 안내문 탭 추가</button>
             </div>
-            <p style="color:#d93025; font-size:13px; margin:0;">※ 주의: 파일명은 반드시 '선택학년도.csv' 형식이어야 합니다. (예: 2026.csv)</p>
+            <div class="guide-box">
+                <strong style="color:#0046a0;">💡 운영 가이드</strong><br>
+                1. 파일의 형식은 <span style="font-weight:bold; color:#d93025;">년도.csv (예: 2026.csv)</span>로 통일해 주세요.<br>
+                2. 차기 학년도에 "11월 중에 업로드 예정입니다" 문구를 나오게 하시려면,<br>
+                &nbsp;&nbsp;&nbsp;상단에서 학년도를 선택하신 후 <span style="font-weight:bold; color:#0046a0;">[+ 안내문 탭 추가]</span> 버튼을 눌러주세요.
+            </div>
         </div>
         <div class="upload-status"><strong>📺 사용자 화면 현황</strong><ul id="uploadedList"></ul></div>
         <button class="btn-launch" onclick="launchService()">사용자 검색 페이지 열기 ➔</button>
     </div>
 
-    <!-- ════════ 사용자 화면 ════════ -->
     <div id="userView">
         <h2 class="header-title">충주시 초등학교 통학구역 및 중학구 검색</h2>
         <div class="year-tabs" id="tabContainer"></div>
-        <div class="empty-message" id="emptyMessage"><span id="emptyText"></span></div>
+        <div id="emptyMessage" style="display:none; text-align:center; padding:50px; font-size:18px; color:#555; background:#fff; border-radius:12px; border:1px solid #ddd;"><span id="emptyText"></span></div>
         <div id="searchArea">
-            <!-- 안내문 (지번주소 링크 포함 고정) -->
             <div class="notice-box" style="word-break:keep-all;word-wrap:break-word;">
-                <div class="notice-line">📌 통학구역 및 중학구는 시·도 조례와 고시에 따라,<br>행정동의 <span class="highlight">통·반 또는 읍·면·리와 지번</span>(번지) 주소를 기준으로 정해집니다.<br>통·반 구역 정보는 관할 행정복지센터(충주시 <a href="https://www.chungju.go.kr/town/" target="_blank">'통합읍면동' 안내 페이지</a>)를 통해 확인할 수 있으며,<br>지번 주소는 <a href="https://www.juso.go.kr/" target="_blank">'도로명주소 안내시스템'</a>에서 조회해 주세요.</div>
-                <div class="notice-line">🗺️ 지도 정보 안내: 학구도는 <a href="https://schoolzone.emac.kr/" target="_blank">[학구도안내서비스]</a>에서 참고하실 수 있으며,<br><span class="highlight">실시간 최신 정보는 이 페이지</span>에서 먼저 확인하실 수 있습니다.</div>
-                <div class="notice-line notice-legend">
-                    <span style="font-weight:bold;margin-right:4px;">범례:</span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;"><span class="leg-tag ejoint">🚸 공동학구</span> 여러 학교 모두 지원 가능</span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;"><span class="leg-tag eway">🌳 공동(일방)학구</span> 지정 큰학교에서 작은학교로만 전입 가능</span>
+                <div class="notice-line">📌 통학구역과 중학구는 시·도의 조례나 고시에 따라, 행정동의 <span class="highlight">통·반 또는 읍·면·리와 지번</span> 주소를 기준으로 정해지므로, 통·반 정보는 관할 행정복지센터(<a href="https://www.chungju.go.kr/town/" target="_blank">[충주시 통합읍면동</a>]를 통해 확인하세요.</div>
+                <div class="notice-line">🏠 도로명 주소로 지번(통·반)을 확인하시려면 <a href="https://www.juso.go.kr/" target="_blank">'도로명주소 안내시스템'</a>을 이용해 주세요.</div>
+                <div class="notice-line">🗺️ 지도 정보 안내: 학구도는 <a href="https://schoolzone.emac.kr/" target="_blank">[학구도안내서비스]</a>에서 참고 가능하며, <span class="highlight">최신 <a href="https://www.cbchje.go.kr:447/cbchje/sub.php?menukey=1248" target="_blank">통학구역 및 중학구 정보</a>는 이 페이지</span>에서 먼저 확인하실 수 있습니다.</div>
+                <div class="notice-line">
+                    <strong>범례:</strong> 
+                    <span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px;"><span style="background:#f0fdf4; color:#166534; padding:1px 6px; border-radius:10px; font-size:11px; font-weight:600;">🚌 공동학구</span> 공동학구 내 학교 모두 지원 가능</span>
+                    <span style="display:inline-flex;align-items:center;gap:3px;margin-left:8px;"><span style="background:#dcfce7; color:#15803d; padding:1px 6px; border-radius:10px; font-size:11px; font-weight:600;">🌳 공동(일방)학구</span> 지정 큰학교에서 작은학교로만 전입 가능</span>
                 </div>
             </div>
 
-            <!-- 검색창 + 자동완성 (코드11 개선) -->
             <div class="search-wrap" id="searchWrap">
-                <input type="text" id="searchInput" class="search-input"
-                       placeholder="🔍  동·리, 통·반, 아파트명, 초등학교명, 중학교명 입력"
-                       autocomplete="off">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍  동·리, 통·반, 아파트명, 초등학교명, 중학교명 입력" autocomplete="off">
                 <button class="search-clear" id="clearBtn" onclick="clearSearch()">✕</button>
                 <div class="ac-dropdown" id="acDropdown"></div>
             </div>
 
             <div class="result-summary" id="resultSummary"></div>
             <div id="results"></div>
-            <div class="empty-message" id="emptyMsg" style="display:none;">검색 결과가 없습니다.</div>
+            <div class="empty-message" id="emptyMsg" style="display:none; text-align:center; padding:50px; color:#666;">검색 결과가 없습니다.</div>
         </div>
-        <div class="footer-text">꿈·도전·동행의 감동 충주교육 | Copyright © 충청북도충주교육지원청
+        <div class="footer-text">
             <button class="btn-admin-return" onclick="returnToAdmin()">관리자 화면</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ── 관리자 패널 로직 (코드10_3수정 원본) ──
     let database = {}; let emptyTabs = []; let currentActiveYear = null;
     let AC = { 동리:[], 초등:[], 중학구:[], 아파트:[], 추첨약칭:[] };
     let acFocusIdx = -1;
-
     const HOME_SVG = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-    const 추첨약칭목록 = ['충일중','충주미덕중','충주북여자중','북여중','충주여자중','여중','충주예성여자중','예성여중','충주중앙중','중앙중','충주중','칠금중','탄금중'];
+    const 추첨약칭목록 = ['충일중','충주미덕중','미덕중','충주북여자중','북여중','충주북여중','충주여자중','여중','충주여중','충주예성여자중','예성여중','충주예성여중','충주중앙중','중앙중','충주중','칠금중','탄금중'];
 
     function updateStatusUI() {
         const listUi = document.getElementById('uploadedList'); listUi.innerHTML = '';
         const allTabs = [...new Set([...Object.keys(database), ...emptyTabs])].sort();
         allTabs.forEach(year => {
             const li = document.createElement('li');
-            li.innerHTML = database[year]
-                ? `✅ <span style="color:#0046a0;"><strong>${year}학년도</strong> 데이터 탑재됨</span>`
-                : `⏳ <strong>${year}학년도</strong> 안내문 표출 중`;
+            li.innerHTML = database[year] ? `✅ <span style="color:#0046a0;"><strong>${year}학년도</strong> 데이터 탑재됨</span>` : `⏳ <strong>${year}학년도</strong> 안내문 표출 중`;
             listUi.appendChild(li);
         });
     }
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const selectedYear = document.getElementById('adminYearSelect').value;
-        if (!file || file.name !== selectedYear + '.csv') {
-            alert("선택 학년도와 파일명 일치 요망(예: " + selectedYear + ".csv)"); return;
-        }
+        const file = e.target.files[0]; const selectedYear = document.getElementById('adminYearSelect').value;
+        if (!file || file.name !== selectedYear + '.csv') { alert("파일명 일치 요망"); return; }
         Papa.parse(file, { header: true, skipEmptyLines: true, complete: function(results) {
-            database[selectedYear] = results.data;
-            emptyTabs = emptyTabs.filter(y => y !== selectedYear);
-            updateStatusUI();
-            alert(selectedYear + "학년도 데이터 탑재 완료!");
+            database[selectedYear] = results.data; emptyTabs = emptyTabs.filter(y => y !== selectedYear);
+            updateStatusUI(); alert(selectedYear + "학년도 데이터 탑재 완료!");
         }});
     });
 
@@ -208,216 +165,145 @@
     function launchService() {
         const all = [...new Set([...Object.keys(database), ...emptyTabs])].sort();
         if (all.length === 0) return alert("탭을 생성해주세요.");
-        document.getElementById('adminView').style.display = 'none';
-        document.getElementById('userView').style.display = 'block';
+        document.getElementById('adminView').style.display = 'none'; document.getElementById('userView').style.display = 'block';
         switchYear(all[0]);
     }
 
     function switchYear(year) {
-        currentActiveYear = year;
-        const container = document.getElementById('tabContainer'); container.innerHTML = '';
+        currentActiveYear = year; const container = document.getElementById('tabContainer'); container.innerHTML = '';
         [...new Set([...Object.keys(database), ...emptyTabs])].sort().forEach(y => {
-            const btn = document.createElement('button');
-            btn.className = 'year-tab' + (y === year ? ' active' : '');
+            const btn = document.createElement('button'); btn.className = 'year-tab' + (y === year ? ' active' : '');
             btn.onclick = () => switchYear(y); btn.innerText = y + '학년도'; container.appendChild(btn);
         });
         if (database[year]) {
-            document.getElementById('emptyMessage').style.display = 'none';
-            document.getElementById('searchArea').style.display = 'block';
-            buildAC(database[year]);
-            clearSearch();
+            document.getElementById('emptyMessage').style.display = 'none'; document.getElementById('searchArea').style.display = 'block';
+            buildAC(database[year]); clearSearch();
         } else {
-            document.getElementById('searchArea').style.display = 'none';
-            document.getElementById('emptyMessage').style.display = 'block';
-            document.getElementById('emptyText').innerText = year + "학년도 통학구역 안내는 11월 말 제공 예정입니다.";
+            document.getElementById('searchArea').style.display = 'none'; document.getElementById('emptyMessage').style.display = 'block';
+            document.getElementById('emptyText').innerText = year + "학년도 안내문은 11월 중 제공 예정입니다.";
         }
     }
 
-    function returnToAdmin() {
-        document.getElementById('userView').style.display = 'none';
-        document.getElementById('adminView').style.display = 'block';
-    }
-
-    // ── 자동완성 목록 구성 (코드11 개선) ──
+    function returnToAdmin() { document.getElementById('userView').style.display = 'none'; document.getElementById('adminView').style.display = 'block'; }
     function buildAC(rows) {
-        AC.동리    = [...new Set(rows.map(r => r['법정동(읍∙면)']||'').filter(Boolean))].sort();
-        AC.초등    = [...new Set(rows.map(r => r['초등학교명']||'').filter(Boolean))].sort();
-        AC.중학구  = [...new Set(rows.map(r => r['중학구']||'').filter(Boolean))].sort();
+        AC.동리 = [...new Set(rows.map(r => r['법정동(읍∙면)']||'').filter(Boolean))].sort();
+        AC.초등 = [...new Set(rows.map(r => r['초등학교명']||'').filter(Boolean))].sort();
+        AC.중학구 = [...new Set(rows.map(r => r['중학구']||'').filter(Boolean))].sort();
         AC.추첨약칭 = 추첨약칭목록;
-        AC.아파트  = [...new Set(rows.flatMap(r => (r['공동주택명']||'').split('/').map(s=>s.trim()).filter(Boolean)))].sort();
+        AC.아파트 = [...new Set(rows.flatMap(r => (r['공동주택명']||'').split('/').map(s=>s.trim()).filter(Boolean)))].sort();
     }
 
-    // ── 검색창 이벤트 (코드11 개선) ──
     const searchInput = document.getElementById('searchInput');
-    const acDropdown  = document.getElementById('acDropdown');
-    const clearBtn    = document.getElementById('clearBtn');
+    const acDropdown = document.getElementById('acDropdown');
+    const clearBtn = document.getElementById('clearBtn');
 
     searchInput.addEventListener('input', function() {
-        const q = this.value.trim();
-        clearBtn.style.display = q ? 'block' : 'none';
+        const q = this.value.trim(); clearBtn.style.display = q ? 'block' : 'none';
         if (q.length < 1) { hideAC(); clearResults(); return; }
-        showAC(q);
-        if (q.length >= 2) performSearch(q, null, null);
-        else clearResults();
+        showAC(q); if (q.length >= 2) performSearch(q); else clearResults();
     });
 
-    searchInput.addEventListener('keydown', function(e) {
-        const items = acDropdown.querySelectorAll('.ac-item');
-        if (!items.length) return;
-        if (e.key === 'ArrowDown') { e.preventDefault(); acFocusIdx = Math.min(acFocusIdx+1, items.length-1); updateACFocus(items); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); acFocusIdx = Math.max(acFocusIdx-1, 0); updateACFocus(items); }
-        else if (e.key === 'Enter') {
-            if (acFocusIdx >= 0 && items[acFocusIdx]) items[acFocusIdx].click();
-            else { hideAC(); performSearch(searchInput.value.trim(), null, null); }
-        } else if (e.key === 'Escape') hideAC();
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!document.getElementById('searchWrap').contains(e.target)) hideAC();
-    });
-
-    function updateACFocus(items) {
-        items.forEach((el,i) => el.classList.toggle('focused', i===acFocusIdx));
-        if (items[acFocusIdx]) items[acFocusIdx].scrollIntoView({block:'nearest'});
-    }
+    document.addEventListener('click', function(e) { if (!document.getElementById('searchWrap').contains(e.target)) hideAC(); });
     function hideAC() { acDropdown.style.display='none'; acFocusIdx=-1; }
     function clearSearch() { searchInput.value=''; clearBtn.style.display='none'; hideAC(); clearResults(); }
-    function clearResults() {
-        document.getElementById('results').innerHTML='';
-        document.getElementById('resultSummary').innerHTML='';
-        document.getElementById('emptyMsg').style.display='none';
-    }
+    function clearResults() { document.getElementById('results').innerHTML=''; document.getElementById('resultSummary').innerHTML=''; document.getElementById('emptyMsg').style.display='none'; }
 
     function showAC(q) {
-        const norm = q.replace(/\s/g,'').toLowerCase();
-        const groups = [];
-        const 동리hits = AC.동리.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
-        if (동리hits.length) groups.push({label:'🏘  동·리', type:'dong', items:동리hits.slice(0,5)});
-        const 초등hits = AC.초등.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
-        if (초등hits.length) groups.push({label:'🏫  초등학교', type:'elem', items:초등hits.slice(0,5)});
-        const 중hits = AC.중학구.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
-        const 약칭hits = AC.추첨약칭.filter(k => k.replace(/\s/g,'').toLowerCase().includes(norm));
-        const 추첨직접 = norm.includes('추첨')||norm.includes('충주시학교군')||norm.includes('학교군');
-        let mitems = [...중hits];
-        약칭hits.forEach(k => { if (!mitems.includes(k)) mitems.push(k); });
-        if (추첨직접 && !mitems.includes('충주시학교군(추첨)')) mitems.push('충주시학교군(추첨)');
-        if (mitems.length) groups.push({label:'🎓  중학교·중학구', type:'mid', items:mitems.slice(0,6)});
-        const 아파트hits = AC.아파트.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
-        if (아파트hits.length) groups.push({label:'🏢  아파트·공동주택', type:'apt', items:아파트hits.slice(0,5)});
+        const norm = q.replace(/\s/g,'').toLowerCase(); const groups = [];
+        const dHits = AC.동리.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+        if (dHits.length) groups.push({label:'🏘 동·리', icon:'📍', items:dHits.slice(0,5)});
+        const eHits = AC.초등.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+        if (eHits.length) groups.push({label:'🏫 초등학교', icon:'🏫', items:eHits.slice(0,5)});
+        const mHits = AC.중학구.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
+        const yHits = AC.추첨약칭.filter(k => k.replace(/\s/g,'').toLowerCase().includes(norm));
+        let mitems = [...mHits]; yHits.forEach(k => { if (!mitems.includes(k)) mitems.push(k); });
+        if (mitems.length) groups.push({label:'🎓 중학교·중학구', icon:'🎓', items:mitems.slice(0,6)});
         if (!groups.length) { hideAC(); return; }
-        acDropdown.innerHTML=''; acFocusIdx=-1;
-        groups.forEach(g => {
+        acDropdown.innerHTML=''; groups.forEach(g => {
             const gl = document.createElement('div'); gl.className='ac-group-label'; gl.textContent=g.label; acDropdown.appendChild(gl);
             g.items.forEach(val => {
                 const div = document.createElement('div'); div.className='ac-item';
-                const icon = g.type==='dong'?'📍':g.type==='elem'?'🏫':g.type==='mid'?'🎓':'🏢';
-                div.innerHTML = `<span class="icon">${icon}</span><span class="label">${highlight(val,norm)}</span>`;
-                div.addEventListener('click', () => { searchInput.value=val; clearBtn.style.display='block'; hideAC(); performSearch(val,g.type,val); });
+                div.innerHTML = `<span class="icon">${g.icon}</span><span class="label">${val}</span>`;
+                div.onclick = () => { searchInput.value=val; hideAC(); performSearch(val); };
                 acDropdown.appendChild(div);
             });
         });
         acDropdown.style.display='block';
     }
 
-    function highlight(text, q) {
-        if (!q) return text;
-        const idx = text.toLowerCase().indexOf(q.toLowerCase());
-        if (idx < 0) return text;
-        return text.slice(0,idx) + '<mark>' + text.slice(idx,idx+q.length) + '</mark>' + text.slice(idx+q.length);
-    }
-
-    // ── 검색 실행 (코드11 개선 - 초등학교명 컬럼명 수정) ──
-    function performSearch(q, type, exactVal) {
+    function performSearch(q) {
         if (!database[currentActiveYear]) return;
         const rows = database[currentActiveYear];
         const norm = q.replace(/\s/g,'').toLowerCase();
-        let results = [];
-        if (type === 'dong') results = rows.filter(r => (r['법정동(읍∙면)']||'') === exactVal);
-        else if (type === 'elem') results = rows.filter(r => (r['초등학교명']||'') === exactVal);
-        else if (type === 'mid') {
-            if (exactVal === '충주시학교군(추첨)' || AC.추첨약칭.includes(exactVal))
-                results = rows.filter(r => (r['중학구']||'').includes('추첨'));
-            else results = rows.filter(r => (r['중학구']||'') === exactVal);
-        } else if (type === 'apt') results = rows.filter(r => (r['공동주택명']||'').includes(exactVal));
-        else {
-            // 추첨 별칭(여중, 북여중 등) 자유검색 처리
-            const isAlias = AC.추첨약칭.some(k => k.replace(/\s/g,'').toLowerCase().includes(norm));
-            if (isAlias) {
-                results = rows.filter(r => (r['중학구']||'').includes('추첨'));
-            } else {
-                results = rows.filter(r => {
-                    const h = [r['초등학교명'],r['법정동(읍∙면)'],r['법정리(통)'],r['행정리(반)'],r['공동주택명'],r['공동학구 초등학교'],r['공동(일방)학구 초등학교'],r['참고']].join(' ').replace(/\s/g,'').toLowerCase();
-                    return h.includes(norm);
-                });
-                // 결과가 없으면 중학구 컬럼으로 fallback 검색
-                if (results.length === 0) {
-                    const midMatch = AC.중학구.filter(v => v.replace(/\s/g,'').toLowerCase().includes(norm));
-                    if (midMatch.length > 0) {
-                        results = rows.filter(r => midMatch.includes((r['중학구']||'').trim()));
-                    }
-                }
-            }
-        }
-        renderResults(results, q);
+        
+        const searchNumbers = q.match(/\d+/g) || []; 
+        const searchText = q.replace(/[0-9통반리번지길\s]/g, ''); 
+        const midTarget = norm.endsWith('중') ? norm.replace(/중$/, '중학구') : norm;
+
+        let scoredResults = rows.map(r => {
+            let score = 0;
+            const sch = (r['초등학교명']||'').replace(/\s/g,'').toLowerCase();
+            const dong = (r['법정동(읍∙면)']||'').replace(/\s/g,'').toLowerCase();
+            const mid = (r['중학구']||'').replace(/\s/g,'').toLowerCase();
+            const apt = (r['공동주택명']||'').replace(/\s/g,'').toLowerCase();
+
+            if (searchText && dong.includes(searchText)) score += 5000;
+            searchNumbers.forEach(n => {
+                if ((r['법정리(통)']||'').includes(n) || (r['행정리(반)']||'').includes(n) || (r['구역(번지)']||'').includes(n)) score += 2000;
+            });
+
+            if (mid.includes(midTarget)) score += 30000;
+            if (mid.includes('추첨') && 추첨약칭목록.some(k => norm.includes(k))) score += 25000;
+            if (sch.includes(norm)) score += 10000;
+            if (sch === norm) score += 5000;
+            if (dong.includes(norm)) score += 5000;
+            if (apt.includes(norm)) score += 3000;
+
+            return score > 0 ? { row: r, score: score } : null;
+        }).filter(item => item !== null).sort((a, b) => b.score - a.score);
+
+        renderResults(scoredResults.map(i => i.row));
     }
 
-    // ── 결과 렌더 (코드11 개선 - 초등/중등 분리 태그) ──
-    function renderResults(results, q) {
-        const resultDiv  = document.getElementById('results');
-        const summaryDiv = document.getElementById('resultSummary');
-        const emptyMsg   = document.getElementById('emptyMsg');
-        resultDiv.innerHTML=''; emptyMsg.style.display='none';
-        if (!results.length) { summaryDiv.innerHTML=''; emptyMsg.style.display='block'; return; }
+    function renderResults(results) {
+        const resultDiv = document.getElementById('results'); const summaryDiv = document.getElementById('resultSummary');
+        resultDiv.innerHTML='';
+        if (!results.length) { summaryDiv.innerHTML=''; document.getElementById('emptyMsg').style.display='block'; return; }
+        document.getElementById('emptyMsg').style.display='none';
         summaryDiv.innerHTML = `<strong>${results.length}건</strong>의 결과가 있습니다.`;
 
         results.slice(0, 80).forEach(r => {
             const card = document.createElement('div'); card.className='result-card';
-            const mid = (r['중학구']||'').trim();
-            const is추첨 = mid.includes('추첨');
-            const addrParts = [r['법정동(읍∙면)'],r['법정리(통)'],r['행정리(반)'],r['구역(번지)']].filter(Boolean).join(' ');
-            const apt   = (r['공동주택명']||'').trim();
-            const excl  = (r['제외 구역(번지)']||'').trim();
-            const ejoin = (r['공동학구 초등학교']||'').trim();
-            const eway  = (r['공동(일방)학구 초등학교']||'').trim();
-            const mjoin = (r['중학교 공동학구']||'').trim();
-            const mway  = (r['중학교 공동(일방)학구']||'').trim();
-            const note  = (r['참고']||'').trim();
+            const mid = (r['중학구']||'').trim(); const isChu = mid.includes('추첨');
+            const addr = [r['법정동(읍∙면)'],r['법정리(통)'],r['행정리(반)'],r['구역(번지)']].filter(Boolean).join(' ');
+            const middleList = "충일중, 충주미덕중, 충주북여자중, 충주여자중, 충주예성여자중, 충주중앙중, 충주중, 칠금중, 탄금중";
+            const midLabel = isChu ? `충주시학교군<span class="s-sub">(추첨배정)</span>` : mid.replace(/중학구$/,'중학교');
+            const midSub = isChu ? `<div style="font-size:11px; color:#64748b; margin-top:4px; line-height:1.4;">대상: ${middleList}</div>` : '';
 
-            let elemTags = '';
-            if (ejoin) elemTags += `<span class="tag tag-ejoint">🚸 공동학구: ${ejoin}</span>`;
-            if (eway)  elemTags += `<span class="tag tag-eway">🌳 공동(일방)학구: ${eway}</span>`;
-            let midTags = '';
-            if (mjoin) midTags += `<span class="tag tag-mjoint">🚸 중등 공동학구: ${mjoin}</span>`;
-            if (mway)  midTags += `<span class="tag tag-mway">🌳 중등 공동(일방)학구: ${mway}</span>`;
-            let commonTags = '';
-            if (apt)  commonTags += `<span class="tag tag-apt">🏢 ${apt}</span>`;
-            if (excl) commonTags += `<span class="tag tag-excl">⚠️ ${excl}</span>`;
-            if (note) commonTags += `<span class="tag tag-note">📌 ${note}</span>`;
-            const hasSplit = elemTags || midTags;
-            // 추첨 대상 학교 목록 (괄호 별칭 제거)
-            const 추첨학교목록 = is추첨 ? '충일중/충주미덕중/충주북여자중/충주여자중/충주예성여자중/충주중앙중/충주중/칠금중/탄금중' : '';
-            const midLabel = is추첨 ? `충주시학교군<span class="s-sub">(추첨배정)</span>` : mid.replace(/중학구$/,'중학교');
-            const midSub = is추첨 && 추첨학교목록 ? `<div class="s-sub" style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.4;">대상: ${추첨학교목록}</div>` : '';
+            const eJoint = (r['공동학구 초등학교']||'').trim();
+            const eWay = (r['공동(일방)학구 학교']||'').trim();
+            const mJoint = (r['중학교 공동학구']||'').trim();
+            const mWay = (r['중학교 공동(일방)학구']||'').trim();
 
             card.innerHTML = `
                 <div class="card-top">
-                    <div class="school-box elem"><span class="s-label">🌿 초등학교</span><span class="s-name">${r['초등학교명']||''}</span></div>
-                    <div class="school-box mid-box"><span class="s-label">🔵 중학교 / 중학구</span><span class="s-name">${midLabel}</span>${midSub}</div>
+                    <div class="school-box elem"><span class="s-label">🏫 초등학교</span><span class="s-name">${r['초등학교명']||''}</span></div>
+                    <div class="school-box mid-box"><span class="s-label">🎓 중학교 / 중학구</span><span class="s-name">${midLabel}</span>${midSub}</div>
                 </div>
                 <div class="tags-split">
                     <div class="tags-col elem-col">
-                        <div class="addr-row"><div class="addr-icon">${HOME_SVG}</div><span>${addrParts||'(주소 정보 없음)'}</span></div>
-                        
-                        ${commonTags}${elemTags}
+                        <div class="addr-row"><div class="addr-icon">${HOME_SVG}</div><span>${addr}</span></div>
+                        ${(r['공동주택명']||'').trim() ? `<span class="tag tag-apt">🏢 ${r['공동주택명']}</span>` : ''}
+                        ${eJoint ? `<span class="tag tag-ejoint">🚌 공동학구: ${eJoint}</span>` : ''}
+                        ${eWay ? `<span class="tag tag-eway">🌳 공동(일방)학구: ${eWay}</span>` : ''}
                     </div>
                     <div class="tags-col mid-col">
-                        ${midTags ? '<div class="tags-col-label">🔵 중등 학구 정보</div>'+midTags : ''}
+                        ${mJoint ? `<span class="tag tag-mjoint">🚌 중등 공동학구: ${mJoint}</span>` : ''}
+                        ${mWay ? `<span class="tag tag-mway">🌳 중등 공동(일방)학구: ${mWay}</span>` : ''}
                     </div>
                 </div>`;
             resultDiv.appendChild(card);
         });
-        if (results.length > 80)
-            summaryDiv.innerHTML = `<strong>${results.length}건</strong> 중 상위 80건 표시 — 검색어를 더 구체적으로 입력하세요.`;
     }
 </script>
 </body>
