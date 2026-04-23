@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+merged_html = r"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -6,669 +7,702 @@
 <meta name="description" content="충주시 초·중학교 통학구역 및 중학구 간편 검색 서비스">
 <meta property="og:title" content="충주시 통학구역 검색 서비스">
 <meta property="og:description" content="주소 입력을 통해 배정 초등학교와 중학교를 쉽게 확인하세요.">
-<title>충주시 초등학교 통학구역 및 중학구 검색</title>
+<title>충주 초·중학교 통학구역 검색 시스템</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif;margin:0;padding:20px;background:#f5f7fa;color:#1f2937}
-  .container{max-width:960px;margin:0 auto}
-  h1{text-align:center;color:#1e3a8a;margin-bottom:20px}
+/* 기본 레이아웃 */
+*{box-sizing:border-box}
+body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif;padding:0;margin:0;background:#f4f7f9;color:#333;line-height:1.6}
+.container{max-width:880px;margin:40px auto;padding:0 20px}
 
-  .admin{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px;display:none}
-  .admin.show{display:block}
-  .admin h2{margin-top:0;color:#1e40af}
-  .file-input{margin:10px 0}
-  .btn{background:#2563eb;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
-  .btn:hover{background:#1d4ed8}
-  .btn-sec{background:#6b7280}
-  .btn-sec:hover{background:#4b5563}
-  .year-sel{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
-  .status{padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
-  .status.ok{background:#d1fae5;color:#065f46}
-  .status.err{background:#fee2e2;color:#991b1b}
+/* 관리자 화면 */
+#adminView{background:#fff;padding:40px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.05);border-top:5px solid #0046a0}
+.admin-header{text-align:center;margin-bottom:30px;border-bottom:2px solid #eee;padding-bottom:20px}
+.admin-header h2{color:#2c3e50;margin:0;font-size:24px}
+.admin-controls{background:#f8f9fa;padding:25px;border-radius:8px;text-align:center}
+.control-group{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+.year-select{padding:10px 15px;font-size:15px;border-radius:6px;border:1px solid #0046a0;color:#0046a0;font-weight:bold;outline:none}
+.file-input{border:1px solid #ddd;padding:8px 12px;border-radius:6px;background:#fff;cursor:pointer;font-size:14px}
+.btn-empty-tab{background:#fff;border:2px solid #6c757d;color:#6c757d;padding:9px 15px;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer}
+.btn-empty-tab:hover{background:#f3f4f6}
+.guide-box{background:#fff;border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:20px;font-size:13.5px;color:#444;line-height:1.6;text-align:left;display:inline-block;max-width:620px}
+.upload-status{margin-top:25px;padding:20px;border-radius:8px;background:#eef2f7;font-size:15px}
+.upload-status ul{margin:8px 0 0 0;padding-left:20px}
+.upload-status li{margin:4px 0}
+.btn-launch{display:block;width:100%;padding:15px;background:#0046a0;color:#fff;font-size:18px;font-weight:bold;text-align:center;border:none;border-radius:8px;cursor:pointer;margin-top:30px}
+.btn-launch:hover{background:#003380}
+.status-msg{padding:10px;border-radius:6px;margin:10px 0;font-size:14px}
+.status-msg.ok{background:#d1fae5;color:#065f46}
+.status-msg.err{background:#fee2e2;color:#991b1b}
 
-  .user-page{background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-  .year-tabs{display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
-  .year-tab{padding:10px 24px;border:2px solid #e5e7eb;background:#fff;border-radius:24px;cursor:pointer;font-weight:600;transition:all .2s}
-  .year-tab.active{border-color:#1e40af;background:#1e40af;color:#fff}
-  .year-tab.pending{color:#9ca3af;border-style:dashed;background:#f9fafb}
-  
-  .notice{background:#fef9e7;border-left:4px solid #f59e0b;padding:14px 18px;border-radius:8px;margin-bottom:20px;font-size:14px;line-height:1.8}
-  .notice mark{background:#fff3a3;padding:1px 4px;border-radius:3px}
-  .notice a{color:#1e40af;font-weight:600;text-decoration:underline;cursor:pointer}
+/* 사용자 화면 */
+#userView{display:none}
+.header-title{text-align:center;color:#0046a0;margin-bottom:20px;font-size:28px;font-weight:900;letter-spacing:-1px}
+.year-tabs{display:flex;justify-content:center;margin-bottom:25px;gap:10px;flex-wrap:wrap}
+.year-tab{padding:12px 35px;font-size:16px;font-weight:bold;border:2px solid #0046a0;background:#fff;color:#0046a0;border-radius:30px;cursor:pointer;transition:all .2s}
+.year-tab.active{background:#0046a0;color:#fff;box-shadow:0 4px 10px rgba(0,70,160,.2)}
+.year-tab.pending{color:#9ca3af;border-color:#d1d5db;border-style:dashed;background:#f9fafb}
 
-  .search-wrap{position:relative;margin-bottom:20px}
-  .search-box{width:100%;padding:14px 44px 14px 16px;border:2px solid #d1d5db;border-radius:10px;font-size:16px;outline:none;transition:border-color .2s}
-  .search-box:focus{border-color:#2563eb}
-  .clear-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:20px;color:#9ca3af;opacity:0;pointer-events:none;transition:opacity .2s ease-in-out,color .2s ease-in-out}
-  .clear-btn:hover{color:#6b7280}
-  .clear-btn.show{opacity:1;pointer-events:auto}
+#searchArea{display:none}
+#emptyMessage{display:none;text-align:center;padding:50px;font-size:18px;color:#555;background:#fff;border-radius:12px;border:1px solid #ddd}
 
-  .ac-box{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 10px 10px;max-height:320px;overflow-y:auto;z-index:100;display:none;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-  .ac-box.show{display:block}
-  .ac-group{border-bottom:1px solid #f3f4f6}
-  .ac-title{padding:6px 14px;font-size:11px;font-weight:700;color:#6b7280;background:#f9fafb;letter-spacing:.5px}
-  .ac-item{padding:14px 16px;cursor:pointer;font-size:16px;display:flex;align-items:center;gap:8px}
-  .ac-item:hover,.ac-item.focus{background:#eff6ff;font-weight:600;color:#1e40af}
-  .ac-item mark{background:#fff3a3;font-weight:700;padding:0 2px;border-radius:2px}
+/* 안내문 */
+.notice-box{background:#fff;border:1px solid #eaeaea;padding:18px;border-radius:10px;font-size:14px;margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,.02)}
+.notice-line{margin-bottom:8px;border-left:3px solid #adc6ff;padding-left:12px}
+.notice-line:last-child{margin-bottom:0;border-left:3px solid #ccc}
+.notice-box a{color:#0046a0;text-decoration:underline;font-weight:bold;cursor:pointer}
+.notice-box a:hover{color:#003380;background:#f0f4f8;border-radius:3px}
+.highlight{background:#ffff00;padding:1px 3px;border-radius:2px;font-weight:bold}
 
-  .result-count{margin-bottom:12px;color:#4b5563;font-size:14px;font-weight:500}
-  .result-count b{color:#1e40af}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+/* 검색창 */
+.search-wrap{position:relative;margin-bottom:22px}
+.search-input{width:100%;padding:18px 52px 18px 18px;font-size:17px;border:2px solid #0046a0;border-radius:12px;outline:none;box-sizing:border-box;box-shadow:0 4px 12px rgba(0,70,160,.08);font-family:inherit}
+.search-input:focus{border-color:#003380}
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;color:#999;cursor:pointer;display:none;line-height:1}
 
-  .col-head{font-size:13px;font-weight:700;color:#6b7280;padding-bottom:6px;border-bottom:2px solid #e5e7eb;margin-bottom:10px}
-  .elem-col .col-head{color:#059669;border-color:#10b981}
-  .mid-col .col-head{color:#7c3aed;border-color:#a78bfa}
-  .school-name{font-size:18px;font-weight:700;color:#1f2937;margin-bottom:8px}
-  .school-target{font-size:13px;color:#4b5563;line-height:1.7;margin-top:4px}
+/* 자동완성 드롭다운 */
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #0046a0;border-radius:10px;box-shadow:0 8px 24px rgba(0,70,160,.13);z-index:100;overflow:hidden;display:none;max-height:340px;overflow-y:auto}
+.ac-group-label{padding:7px 14px 4px;font-size:11.5px;font-weight:bold;color:#888;letter-spacing:.5px;background:#f8f9fa;border-bottom:1px solid #eee}
+.ac-item{padding:11px 16px;cursor:pointer;font-size:15px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #f5f5f5;transition:background .1s}
+.ac-item:hover,.ac-item.focused{background:#e8f0fe;color:#0046a0}
+.ac-item .icon{font-size:16px;flex-shrink:0}
+.ac-item mark{background:#fff3a3;font-weight:700;padding:0 2px;border-radius:2px}
 
-  .addr-row{background:#f9fafb;padding:10px 12px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.6;display:flex;gap:8px;align-items:flex-start}
-  .addr-row .addr-icon{flex-shrink:0;color:#6b7280}
-  .addr-row .addr-text{flex:1;word-break:keep-all}
+/* 결과 요약 */
+.result-summary{margin-bottom:12px;color:#4b5563;font-size:14px;font-weight:500}
+.result-summary strong{color:#0046a0;font-weight:800}
 
-  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-  .tag{display:inline-flex;align-items:center;padding:4px 10px;border-radius:14px;font-size:12px;font-weight:500}
-  .tag-apt{background:#ede9fe;color:#6d28d9}
-  .tag-ejoint{background:#d1fae5;color:#065f46}
-  .tag-eway{background:#dcfce7;color:#15803d}
-  .tag-mjoint{background:#e0e7ff;color:#3730a3}
-  .tag-mway{background:#ddd6fe;color:#5b21b6}
-  .tag-loc{background:#f3f4f6;color:#4b5563}
-  .tag-excl{background:#fee2e2;color:#991b1b}
-  .tag-note{background:#fef3c7;color:#92400e}
-  .tag-center{background:#f3f4f6;color:#4b5563}
+/* 결과 카드 */
+.result-card{background:#fff;border-radius:14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #e4eaf0;overflow:hidden;animation:fadeUp .18s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card-top{display:flex;min-height:80px}
+.school-box{flex:1;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.school-box.elem{background:#f0fdf4;border-bottom:3px solid #16a34a}
+.school-box.mid-box{background:#eff6ff;border-bottom:3px solid #2563eb;border-left:1px solid #d1e8ff}
+.s-label{font-size:10.5px;font-weight:700;letter-spacing:.5px;margin-bottom:1px}
+.school-box.elem .s-label{color:#15803d}
+.school-box.mid-box .s-label{color:#1d4ed8}
+.s-name{font-size:21px;font-weight:900;line-height:1.15;letter-spacing:-.3px}
+.school-box.elem .s-name{color:#14532d}
+.school-box.mid-box .s-name{color:#1e3a8a}
+.s-sub{font-size:11.5px;font-weight:500;margin-top:1px;color:#3b82f6}
+.mid-target{font-size:11px;color:#64748b;margin-top:4px;line-height:1.4}
 
-  mark.hit{background:#fff3a3;color:#1f2937;font-weight:700;padding:0 2px;border-radius:3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+/* 주소 블록 + 태그 */
+.addr-block{padding:10px 14px;border-top:1px solid #f0f4f8;background:#fcfdfe}
+.addr-block + .addr-block{border-top:1px dashed #e5e7eb}
+.addr-row{display:flex;align-items:center;gap:9px;background:#f8fafc;border-radius:7px;padding:9px 12px;font-size:14px;color:#374151;margin-bottom:6px}
+.addr-icon{width:24px;height:24px;flex-shrink:0;border-radius:5px;background:#94a3b8;display:flex;align-items:center;justify-content:center}
+.addr-icon svg{width:13px;height:13px;fill:#fff}
 
-  .empty{text-align:center;padding:40px 20px;color:#6b7280}
-  .empty-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#374151}
-  .fuzzy-sug{margin-top:12px;font-size:13px;color:#4b5563}
-  .fuzzy-sug a{color:#2563eb;cursor:pointer;text-decoration:underline;margin:0 4px}
-  .pending-msg{background:#f9fafb;border:1px dashed #d1d5db;padding:20px;border-radius:10px;text-align:center;color:#6b7280;font-size:14px;margin:20px 0}
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;line-height:1.5}
+.tag-apt{background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe}
+.tag-ejoint{background:#f0fdf4;color:#166534;border:1px solid #86efac}
+.tag-eway{background:#dcfce7;color:#15803d;border:1px solid #4ade80}
+.tag-mjoint{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd}
+.tag-mway{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc}
+.tag-excl{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.tag-note{background:#fefce8;color:#854d0e;border:1px solid #fde68a}
+.tag-center{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}
 
-  .skeleton-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-  .skeleton-line{height:18px;background:#e5e7eb;border-radius:6px;margin-bottom:10px;animation:pulse 1.5s infinite ease-in-out}
-  .skeleton-line.short{width:55%}
-  .skeleton-line.mid{width:75%}
+.mid-tags-row{padding:8px 14px;border-top:1px solid #f0f4f8;display:flex;flex-wrap:wrap;gap:5px;background:#fafcff}
 
-  @keyframes pulse{
-    0%{opacity:.55}
-    50%{opacity:1}
-    100%{opacity:.55}
-  }
+mark.hit{background:linear-gradient(180deg,transparent 55%,#fde68a 55%,#fde68a 90%,transparent 90%);color:#b45309;font-weight:700;padding:0;border-radius:0}
+
+/* 빈 결과 */
+.empty{text-align:center;padding:40px 20px;color:#6b7280}
+.empty-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#374151}
+.fuzzy-sug{margin-top:12px;font-size:13px;color:#4b5563}
+.fuzzy-sug a{color:#2563eb;cursor:pointer;text-decoration:underline;margin:0 4px}
+
+/* 푸터 */
+.footer-text{font-size:13px;color:#bbb;text-align:center;margin-top:40px;border-top:1px solid #eee;padding-top:25px;position:relative;min-height:20px}
+.btn-admin-return{position:absolute;right:0;bottom:0;background:none;border:none;color:#ccc;cursor:pointer;text-decoration:underline;font-size:12px}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>충주시 초등학교 통학구역 및 중학구 검색</h1>
 
-  <div id="adminBtnWrap" style="text-align:right;margin-bottom:10px;display:none">
-    <button class="btn btn-sec" onclick="toggleAdmin()">🔧 시스템 관리</button>
-  </div>
-
-  <div id="adminPanel" class="admin">
-    <h2>시스템 웹마스터 설정 패널</h2>
-    <p>CSV 파일명 형식: <b>YYYY.csv</b> (예: 2026.csv)</p>
-    <input type="file" id="csvFile" class="file-input" accept=".csv" multiple>
-    <button class="btn" onclick="loadCSVFiles()">수동 데이터 적재</button>
-    <div id="adminStatus"></div>
-  </div>
-
-  <div id="userPage" class="user-page">
-    <div class="notice">
-      📌 통학구역과 중학구는 행정동의 <mark>통·반 또는 읍·면·리와 지번</mark> 주소를 기준으로 정해지므로, 통·반 정보는 관할 행정복지센터(👆 <a href="https://www.chungju.go.kr/town/" target="_blank">[충주시 통합읍면동]</a>)를 통해 확인하세요.<br>
-      🏠 도로명 주소로 지번(통·반)을 확인하시려면 👆 <a href="https://www.juso.go.kr" target="_blank">'도로명주소 안내시스템'</a>을 이용해 주세요.<br>
-      🗺️ 지도 정보 안내: 학구도는 👆 <a href="https://schoolzone.emac.kr" target="_blank">[학구도안내서비스]</a>에서 참고 가능하며, <a href="https://www.cbchje.go.kr:447/cbchje/sub.php?menukey=1248" target="_blank"><mark>👆 최신 통학구역 및 중학구 정보</mark></a>는 이 페이지에서 먼저 확인하실 수 있습니다.<br>
-      <span style="font-size:13px; color:#4b5563">※ 충주시학교군(추첨배정)은 해당 목록 내 학교 중 컴퓨터 추첨을 통해 배정됨을 의미합니다.</span><br>
-      범례: <span class="tag tag-ejoint">🚌 공동학구</span> (모두 지원 가능) &nbsp; <span class="tag tag-eway">🌳 공동(일방)학구</span> (큰학교에서 작은학교로만 전입 가능)
+  <!-- 관리자 화면 -->
+  <div id="adminView">
+    <div class="admin-header"><h2>⚙️ 시스템 웹마스터 설정 패널</h2></div>
+    <div class="admin-controls">
+      <div class="control-group">
+        <select id="adminYearSelect" class="year-select">
+          <option value="2026">2026학년도</option>
+          <option value="2027">2027학년도</option>
+          <option value="2028">2028학년도</option>
+          <option value="2029">2029학년도</option>
+          <option value="2030">2030학년도</option>
+          <option value="2031">2031학년도</option>
+        </select>
+        <input type="file" id="fileInput" class="file-input" accept=".csv">
+        <button class="btn-empty-tab" onclick="addEmptyNoticeTab()">+ 안내문 탭 추가</button>
+      </div>
+      <div class="guide-box">
+        <strong style="color:#0046a0">💡 운영 가이드</strong><br>
+        1. 파일의 형식은 <span style="font-weight:bold;color:#d93025">년도.csv (예: 2026.csv)</span>로 통일해 주세요.<br>
+        2. 차기 학년도에 "11월 중에 업로드 예정입니다" 문구를 나오게 하시려면,<br>
+        &nbsp;&nbsp;&nbsp;상단에서 학년도를 선택하신 후 <span style="font-weight:bold;color:#0046a0">[+ 안내문 탭 추가]</span> 버튼을 눌러주세요.
+      </div>
+      <div id="adminStatus"></div>
     </div>
+    <div class="upload-status"><strong>📺 사용자 화면 현황</strong><ul id="uploadedList"></ul></div>
+    <button class="btn-launch" onclick="launchService()">사용자 검색 페이지 열기 ➔</button>
+  </div>
 
-    <div class="year-tabs" id="yearTabs" role="tablist"></div>
+  <!-- 사용자 화면 -->
+  <div id="userView">
+    <h2 class="header-title">충주시 초등학교 통학구역 및 중학구 검색</h2>
+    <div class="year-tabs" id="tabContainer"></div>
+
+    <div id="emptyMessage"><span id="emptyText"></span></div>
 
     <div id="searchArea">
-      <div class="search-wrap">
-        <input type="text" id="searchInput" class="search-box" placeholder="🔍 호암동, 칠금초, 푸르지오 등 입력 (띄어쓰기 교집합 검색 지원)" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="acBox" aria-label="통학구역 검색어 입력">
-        <button class="clear-btn" id="clearBtn" onclick="clearSearch()" aria-label="검색어 지우기">×</button>
-        <div class="ac-box" id="acBox" role="listbox" aria-label="추천 검색어"></div>
+      <div class="notice-box" style="word-break:keep-all;word-wrap:break-word">
+        <div class="notice-line">📌 통학구역과 중학구는 시·도의 조례나 고시에 따라, 행정동의 <span class="highlight">통·반 또는 읍·면·리와 지번</span> 주소를 기준으로 정해지므로, 통·반 정보는 관할 행정복지센터(<a href="https://www.chungju.go.kr/town/" target="_blank">👆[충주시 통합읍면동]</a>)를 통해 확인하세요.</div>
+        <div class="notice-line">🏠 도로명 주소로 지번(통·반)을 확인하시려면 <a href="https://www.juso.go.kr/" target="_blank">👆'도로명주소 안내시스템'</a>을 이용해 주세요.</div>
+        <div class="notice-line">🗺️ 지도 정보 안내: 학구도는 <a href="https://schoolzone.emac.kr/" target="_blank">👆[학구도안내서비스]</a>에서 참고 가능하며, <span class="highlight">최신 <a href="https://www.cbchje.go.kr:447/cbchje/sub.php?menukey=1248" target="_blank">👆통학구역 및 중학구 정보</a>는 이 페이지</span>에서 먼저 확인하실 수 있습니다.</div>
+        <div class="notice-line">
+          <strong>범례:</strong>
+          <span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px"><span style="background:#f0fdf4;color:#166534;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:600">🚌 공동학구</span> 공동학구 내 학교 모두 지원 가능</span>
+          <span style="display:inline-flex;align-items:center;gap:3px;margin-left:8px"><span style="background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:600">🌳 공동(일방)학구</span> 지정 큰학교에서 작은학교로만 전입 가능</span>
+        </div>
       </div>
-      <div class="result-count" id="resultCount" aria-live="polite"></div>
-      <div id="resultList"></div>
+
+      <div class="search-wrap" id="searchWrap">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 동·리, 통·반, 아파트, 초등, 중학 입력 (예: 칠금동 탄금초)" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="acDropdown">
+        <button class="search-clear" id="clearBtn" onclick="clearSearch()" aria-label="검색어 지우기">✕</button>
+        <div class="ac-dropdown" id="acDropdown" role="listbox"></div>
+      </div>
+
+      <div class="result-summary" id="resultSummary"></div>
+      <div id="results"></div>
     </div>
 
-    <div id="pendingArea" class="pending-msg" style="display:none"></div>
-    <div id="loadingArea" class="pending-msg">📂 공공 데이터를 연동 중입니다...</div>
-    <div id="errorArea" class="pending-msg" style="display:none"></div>
+    <div class="footer-text">
+      <button class="btn-admin-return" onclick="returnToAdmin()">관리자 화면</button>
+    </div>
   </div>
 </div>
 
 <script>
+/* 전역 상태 */
 const STATE = {
   database: {},
-  availableYears: [],
-  pendingYears: [],
+  emptyTabs: [],
   currentYear: null,
-  AC: {동리:[], 초등:[], 중등:[], 아파트:[]},
+  AC: { 동리:[], 초등:[], 중등:[], 아파트:[], 추첨약칭:[] },
+  추첨학교Map: new Map(),
+  dynamicMiddleList: '',
   acFocusIdx: -1,
-  lastTokens: [],
-  isAdmin: false
+  lastTokens: []
 };
+const HOME_SVG = '<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
 
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);}
-function reEsc(s){return String(s).replace(/[.*+?^${}()|[$\$/g,'\\$&');}
-function getField(row,names){
+/* 유틸 함수 */
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function reEsc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function stripBracket(s){ return String(s==null?'':s).replace(/\s*\[[^\]]*\]\s*/g,'').trim(); }
+function getField(row, names){
   if(!row) return '';
-  for(const n of names){if(row[n]!=null&&String(row[n]).trim()!=='')return String(row[n]).trim();}
-  const keys=Object.keys(row);
   for(const n of names){
-    const k=keys.find(k=>k.includes(n));
-    if(k&&row[k]!=null&&String(row[k]).trim()!=='')return String(row[k]).trim();
+    if(row[n]!=null && String(row[n]).trim()!=='') return String(row[n]).trim();
+  }
+  const keys = Object.keys(row);
+  for(const n of names){
+    const k = keys.find(k=>k.includes(n));
+    if(k && row[k]!=null && String(row[k]).trim()!=='') return String(row[k]).trim();
   }
   return '';
 }
-function hl(text){
-  const t=String(text==null?'':text);
-  if(!t)return'';
-  if(!STATE.lastTokens||!STATE.lastTokens.length)return esc(t);
-  const toks=[...STATE.lastTokens].sort((a,b)=>b.length-a.length).filter(x=>x.length>0);
-  let e=esc(t);
-  for(const tok of toks){
-    const re=new RegExp(reEsc(esc(tok)),'gi');
-    e=e.replace(re,m=>`<mark class="hit">${m}</mark>`);
-  }
-  return e;
+function parseSchoolName(str){
+  const m = str.match(/^(.+?)\((.+?)\)$/);
+  if(m) return { full:m[1].trim(), short:m[2].trim() };
+  return { full:str.trim(), short:null };
 }
+/* 하이라이트 */
+function hl(text){
+  const t = String(text==null?'':text);
+  if(!t) return '';
+  if(!STATE.lastTokens || STATE.lastTokens.length===0) return esc(t);
+  const toks = [...STATE.lastTokens].sort((a,b)=>b.length-a.length).filter(x=>x.length>0);
+  let out = esc(t);
+  for(const tok of toks){
+    const re = new RegExp(reEsc(esc(tok)),'gi');
+    out = out.replace(re, m=>`<mark class="hit">${m}</mark>`);
+  }
+  return out;
+}
+/* Levenshtein 거리 (오타 보정) */
 function lev(a,b){
   const m=a.length,n=b.length;
-  if(!m)return n;if(!n)return m;
+  if(!m) return n; if(!n) return m;
   const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
-  for(let i=0;i<=m;i++)dp[i][0]=i;
-  for(let j=0;j<=n;j++)dp[0][j]=j;
-  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
-    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1])+1;
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1])+1;
   }
   return dp[m][n];
 }
 
-function parseCSV(text){
-  text=text.replace(/^\uFEFF/,'');
-  const lines=text.split(/\r?\n/).filter(l=>l.length);
-  if(lines.length<2)return [];
-  const sep=lines[0].includes('\t')?'\t':',';
-  const parseLine=(line)=>{
-    const out=[];let cur='';let q=false;
-    for(let i=0;i<line.length;i++){
-      const c=line[i];
-      if(c==='"'){
-        if(q&&line[i+1]==='"'){cur+='"';i++;}
-        else q=!q;
-      }else if(c===sep&&!q){out.push(cur);cur='';}
-      else cur+=c;
-    }
-    out.push(cur);
-    return out.map(s=>s.trim());
-  };
-  const head=parseLine(lines[0]);
-  const rows=[];
-  for(let i=1;i<lines.length;i++){
-    if(!lines[i].trim())continue;
-    const cells=parseLine(lines[i]);
-    const row={};
-    head.forEach((h,idx)=>row[h]=cells[idx]||'');
-    rows.push(row);
+/* 관리자 기능 */
+function setAdminStatus(msg, ok){
+  const el = document.getElementById('adminStatus');
+  el.innerHTML = `<div class="status-msg ${ok?'ok':'err'}">${esc(msg)}</div>`;
+  setTimeout(()=>{ el.innerHTML=''; }, 4000);
+}
+function updateStatusUI(){
+  const listUi = document.getElementById('uploadedList');
+  listUi.innerHTML = '';
+  const allTabs = [...new Set([...Object.keys(STATE.database), ...STATE.emptyTabs])].sort();
+  if(allTabs.length === 0){
+    listUi.innerHTML = '<li style="color:#888">아직 등록된 항목이 없습니다.</li>';
+    return;
   }
-  return rows;
+  allTabs.forEach(year=>{
+    const li = document.createElement('li');
+    li.innerHTML = STATE.database[year]
+      ? `✅ <span style="color:#0046a0"><strong>${year}학년도</strong> 데이터 탑재됨 (${STATE.database[year].length}행)</span>`
+      : `⏳ <strong>${year}학년도</strong> 안내문 표출 중`;
+    listUi.appendChild(li);
+  });
 }
-
-function calcTargetYears(){
-  const now=new Date();
-  const cur=(now.getMonth()+1>=3)?now.getFullYear():now.getFullYear()-1;
-  return [cur, cur+1];
-}
-
-async function autoLoadCSVs(){
-  const years=calcTargetYears();
-  const loaded=[], missing=[];
-  for(const y of years){
-    try{
-      const r=await fetch(`${y}.csv?v=${Date.now()}`,{cache:'no-cache'});
-      if(!r.ok){missing.push(y);continue;}
-      const t=await r.text();
-      const rows=parseCSV(t);
-      if(!rows.length){missing.push(y);continue;}
-      STATE.database[y]=rows;
-      loaded.push(y);
-    }catch(e){missing.push(y);}
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  const selectedYear = document.getElementById('adminYearSelect').value;
+  if(!file) return;
+  if(file.name !== selectedYear + '.csv'){
+    setAdminStatus(`❌ 파일명이 연도와 일치해야 합니다. 예: ${selectedYear}.csv`, false);
+    e.target.value = '';
+    return;
   }
-  STATE.availableYears=loaded;
-  STATE.pendingYears=missing;
-  return {loaded, missing};
-}
-
-async function initUser(){
-  const loading=document.getElementById('loadingArea');
-  const errorArea=document.getElementById('errorArea');
-  const searchArea=document.getElementById('searchArea');
-  
-  try{
-    const {loaded, missing}=await autoLoadCSVs();
-    loading.style.display='none';
-
-    if(loaded.length===0 && !STATE.isAdmin){
-      errorArea.style.display='block';
-      errorArea.innerHTML=`<div style="font-weight:600;color:#991b1b;margin-bottom:6px">📭 시스템에 등록된 연도별 데이터가 없습니다.</div>`;
-      searchArea.style.display='none';
-      return;
-    }
-
-    if(loaded.length>0){
-      loaded.sort((a,b)=>b-a);
-      STATE.currentYear=String(loaded[0]);
-      
-      const tmp={};
-      for(const y of loaded) tmp[String(y)]=STATE.database[y];
-      STATE.database=tmp;
-
-      renderYearTabs(loaded, missing);
-      buildAC();
-      clearResults();
-      searchArea.style.display='block';
-    }
-  }catch(e){
-    loading.style.display='none';
-    errorArea.style.display='block';
-    errorArea.innerHTML=`<div style="font-weight:600;color:#991b1b;margin-bottom:6px">⚠ 서비스 접근 중 오류가 발생했습니다.</div><div>${esc(e.message)}</div>`;
-    searchArea.style.display='none';
+  Papa.parse(file, {
+    header:true, skipEmptyLines:true,
+    complete: function(results){
+      STATE.database[selectedYear] = results.data;
+      STATE.emptyTabs = STATE.emptyTabs.filter(y=>y!==selectedYear);
+      updateStatusUI();
+      setAdminStatus(`✅ ${selectedYear}학년도 데이터 탑재 완료 (${results.data.length}행)`, true);
+    },
+    error: function(err){ setAdminStatus('CSV 파싱 실패: '+err.message, false); }
+  });
+  e.target.value = '';
+});
+function addEmptyNoticeTab(){
+  const year = document.getElementById('adminYearSelect').value;
+  if(STATE.database[year]){
+    setAdminStatus(`이미 ${year}학년도 데이터가 탑재되어 있습니다.`, false);
+    return;
+  }
+  if(!STATE.emptyTabs.includes(year)){
+    STATE.emptyTabs.push(year);
+    updateStatusUI();
+    setAdminStatus(`✅ ${year}학년도 안내문 탭이 추가되었습니다.`, true);
   }
 }
-
-function renderYearTabs(loaded, missing){
-  const el=document.getElementById('yearTabs');
-  
-  const all = [...new Set([...loaded, ...missing])]
-              .map(Number)
-              .sort((a, b) => b - a)
-              .slice(0, 2)
-              .sort((a, b) => a - b);
-              
-  el.innerHTML=all.map(y=>{
-    const strY = String(y);
-    const isLoaded = loaded.map(String).includes(strY);
-    const active = isLoaded && strY === String(STATE.currentYear);
-    
-    if(isLoaded){
-      return `<button class="year-tab ${active?'active':''}" role="tab" aria-selected="${active}" onclick="switchYear('${strY}')">${strY}학년도</button>`;
-    }else{
-      return `<button class="year-tab pending" role="tab" aria-selected="false" onclick="alert('${strY}학년도 자료는 11월 중 업로드 예정입니다.')">${strY}학년도 (준비중)</button>`;
-    }
-  }).join('');
+function launchService(){
+  const all = [...new Set([...Object.keys(STATE.database), ...STATE.emptyTabs])].sort();
+  if(all.length === 0){ setAdminStatus('CSV 업로드 또는 안내문 탭을 먼저 추가해 주세요.', false); return; }
+  document.getElementById('adminView').style.display = 'none';
+  document.getElementById('userView').style.display = 'block';
+  // 기본 선택: 데이터가 있는 가장 최근 연도 우선
+  const dataYears = Object.keys(STATE.database).sort();
+  switchYear(dataYears.length ? dataYears[dataYears.length-1] : all[0]);
+}
+function returnToAdmin(){
+  document.getElementById('userView').style.display = 'none';
+  document.getElementById('adminView').style.display = 'block';
 }
 
-function switchYear(y){
-  STATE.currentYear=String(y);
-  renderYearTabs(STATE.availableYears, STATE.pendingYears);
-  buildAC();
-  clearResults();
-  document.getElementById('searchInput').value='';
-}
-
-function toggleAdmin(){document.getElementById('adminPanel').classList.toggle('show');}
-function setStatus(msg,ok){document.getElementById('adminStatus').innerHTML=`<div class="status ${ok?'ok':'err'}">${esc(msg)}</div>`;}
-function loadCSVFiles(){
-  const files=document.getElementById('csvFile').files;
-  if(!files.length){setStatus('업로드할 파일을 선택하세요.',false);return;}
-  
-  let done=0;const total=files.length;
-  for(const f of files){
-    const year=f.name.replace(/\.csv$/i,'').trim();
-    const rd=new FileReader();
-    rd.onload=e=>{
-      try{
-        const rows=parseCSV(e.target.result);
-        STATE.database[year]=rows;
-        if(!STATE.availableYears.includes(year)){STATE.availableYears.push(year);STATE.availableYears.sort();}
-        done++;
-        if(done===total){
-          setStatus(`정상 처리 완료: ${total}개 파일 / 총 ${Object.values(STATE.database).reduce((s,r)=>s+r.length,0)}행`,true);
-          if(!STATE.currentYear) STATE.currentYear=STATE.availableYears[STATE.availableYears.length-1];
-          renderYearTabs(STATE.availableYears, []);
-          document.getElementById('loadingArea').style.display='none';
-          document.getElementById('errorArea').style.display='none';
-          document.getElementById('searchArea').style.display='block';
-          buildAC();
-        }
-      }catch(err){setStatus('데이터 무결성 오류: '+err.message,false);}
-    };
-    rd.readAsText(f,'UTF-8');
+/* 사용자 화면 - 연도 탭 */
+function switchYear(year){
+  STATE.currentYear = year;
+  const container = document.getElementById('tabContainer');
+  container.innerHTML = '';
+  [...new Set([...Object.keys(STATE.database), ...STATE.emptyTabs])].sort().forEach(y=>{
+    const btn = document.createElement('button');
+    const isActive = (y === year);
+    const isPending = !STATE.database[y];
+    btn.className = 'year-tab' + (isActive ? ' active' : '') + (isPending && !isActive ? ' pending' : '');
+    btn.onclick = () => switchYear(y);
+    btn.innerText = y + '학년도';
+    container.appendChild(btn);
+  });
+  if(STATE.database[year]){
+    document.getElementById('emptyMessage').style.display = 'none';
+    document.getElementById('searchArea').style.display = 'block';
+    buildAC();
+    clearSearch();
+  } else {
+    document.getElementById('searchArea').style.display = 'none';
+    document.getElementById('emptyMessage').style.display = 'block';
+    document.getElementById('emptyText').innerText = year + '학년도 안내문은 11월 중 제공 예정입니다.';
   }
 }
 
+/* 자동완성 데이터 구축 */
 function buildAC(){
-  const rows=STATE.database[STATE.currentYear]||[];
-  const s동리=new Set(),s초=new Set(),s중=new Set(),s아파트=new Set();
-  
-  for(const r of rows){
-    const dong=getField(r,['법정동(읍∙면)','법정동','읍면']);
-    const ri=getField(r,['법정리(통)','법정리']);
-    const elem=getField(r,['초등학교명','초등학교']);
-    const mid=getField(r,['중학구','중학교']);
-    const apt=getField(r,['공동주택명','공동주택']);
-    
-    if(dong)s동리.add(dong);
-    if(ri)ri.split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s동리.add((dong?dong+' ':'')+t);});
-    if(elem)s초.add(elem);
-    getField(r,['공동학구 초등학교','공동학구']).split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s초.add(t);});
-    getField(r,['공동(일방)학구 초등학교','공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s초.add(t);});
-    if(mid)mid.split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s중.add(t);});
-    getField(r,['중학교 공동학구']).split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s중.add(t);});
-    getField(r,['중학교 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s중.add(t);});
-    if(apt)apt.split(/[\/,]/).forEach(x=>{const t=x.trim();if(t)s아파트.add(t);});
-  }
-  
-  STATE.AC.동리=[...s동리].sort();
-  STATE.AC.초등=[...s초].sort();
-  STATE.AC.중등=[...s중].sort();
-  STATE.AC.아파트=[...s아파트].sort();
+  const rows = STATE.database[STATE.currentYear] || [];
+  const s동리=new Set(), s초=new Set(), s중=new Set(), s아파트=new Set();
+
+  rows.forEach(r=>{
+    const dong = getField(r,['법정동(읍∙면)','법정동','읍면']);
+    const ri   = getField(r,['법정리(통)','법정리']);
+    const elem = stripBracket(getField(r,['초등학교명','초등학교']));
+    const mid  = stripBracket(getField(r,['중학구','중학교']));
+    const apt  = getField(r,['공동주택명','공동주택']);
+
+    if(dong) s동리.add(dong);
+    if(ri) ri.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s동리.add((dong?dong+' ':'')+t);});
+    if(elem) s초.add(elem);
+    getField(r,['공동학구 초등학교','공동학구 학교','공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
+    getField(r,['공동(일방)학구 초등학교','공동(일방)학구 학교','공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
+    if(mid) mid.split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    if(apt) apt.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s아파트.add(t);});
+  });
+
+  STATE.AC.동리 = [...s동리].sort();
+  STATE.AC.초등 = [...s초].sort();
+  STATE.AC.중등 = [...s중].sort();
+  STATE.AC.아파트 = [...s아파트].sort();
+
+  // 추첨학교 동적 매핑
+  STATE.추첨학교Map.clear();
+  const chuRows = rows.filter(r => (getField(r,['중학구'])||'').includes('추첨'));
+  chuRows.forEach(r=>{
+    (getField(r,['추첨학교'])||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(s=>{
+      const { full, short } = parseSchoolName(s);
+      if(!STATE.추첨학교Map.has(full)) STATE.추첨학교Map.set(full, short);
+    });
+  });
+  STATE.AC.추첨약칭 = [];
+  const displayArr = [];
+  STATE.추첨학교Map.forEach((short, full)=>{
+    STATE.AC.추첨약칭.push(full);
+    if(short) STATE.AC.추첨약칭.push(short);
+    displayArr.push(short ? `${full}(${short})` : full);
+  });
+  STATE.dynamicMiddleList = displayArr.join(', ');
 }
 
-function scoreMatch(term,item){
-  const t=term.toLowerCase(),it=item.toLowerCase();
-  if(!t)return 0;
-  if(it===t)return 100000;
-  if(it.startsWith(t))return 50000-it.length;
-  if(it.includes(t))return 10000-it.length;
-  const d=lev(t,it);
-  if(d<=2&&t.length>=2)return 1000-d*100-it.length;
+/* 자동완성 UI */
+function scoreMatch(term, item){
+  const t = term.toLowerCase(), it = item.toLowerCase();
+  if(!t) return 0;
+  if(it === t) return 100000;
+  if(it.startsWith(t)) return 50000 - it.length;
+  if(it.includes(t)) return 10000 - it.length;
+  if(t.length >= 2){
+    const d = lev(t, it);
+    if(d <= 1 && Math.abs(t.length - it.length) <= 1) return 1000 - d*100 - it.length;
+  }
   return 0;
 }
-
-function getLastToken(s){const toks=s.trim().split(/\s+/);return toks[toks.length-1]||'';}
-
+function getLastToken(s){
+  const toks = s.trim().split(/\s+/);
+  return toks[toks.length-1] || '';
+}
 function showAC(){
-  const input=document.getElementById('searchInput');
-  const tok=getLastToken(input.value);
-  const box=document.getElementById('acBox');
-  
-  if(!tok||tok.length<1){
-    box.classList.remove('show');
-    input.setAttribute('aria-expanded','false');
-    return;
-  }
-  
-  const groups=[
-    {label:'🏢 공동주택',items:STATE.AC.아파트},
-    {label:'🏘 동·리·통',items:STATE.AC.동리},
-    {label:'🏫 초등학교',items:STATE.AC.초등},
-    {label:'🎓 중학교·중학구',items:STATE.AC.중등}
+  const input = document.getElementById('searchInput');
+  const val = input.value;
+  const tok = getLastToken(val);
+  const box = document.getElementById('acDropdown');
+
+  if(!tok || tok.length < 1){ hideAC(); return; }
+
+  const groups = [
+    {key:'아파트', label:'🏢 공동주택', icon:'🏢', items:STATE.AC.아파트},
+    {key:'동리',  label:'🏘 동·리·통', icon:'📍', items:STATE.AC.동리},
+    {key:'초등',  label:'🏫 초등학교', icon:'🏫', items:STATE.AC.초등},
+    {key:'중등',  label:'🎓 중학교·중학구', icon:'🎓', items:[...new Set([...STATE.AC.중등, ...STATE.AC.추첨약칭])]}
   ];
-  
-  let html='';const all=[];
+
+  let html = '';
+  const all = [];
   for(const g of groups){
-    const scored=g.items.map(x=>({x,s:scoreMatch(tok,x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,8);
+    const scored = g.items.map(x=>({x, s:scoreMatch(tok, x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,6);
     if(scored.length){
-      html+=`<div class="ac-group"><div class="ac-title">${g.label}</div>`;
+      html += `<div class="ac-group-label">${g.label}</div>`;
       for(const o of scored){
-        const idx=all.length;all.push(o.x);
-        const re=new RegExp(reEsc(tok),'gi');
-        const disp=esc(o.x).replace(re,m=>`<mark>${m}</mark>`);
-        html+=`<div class="ac-item" role="option" data-idx="${idx}" onclick="pickAC(${idx})">${disp}</div>`;
+        const idx = all.length;
+        all.push(o.x);
+        const re = new RegExp(reEsc(tok),'gi');
+        const disp = esc(o.x).replace(re, m=>`<mark>${m}</mark>`);
+        html += `<div class="ac-item" role="option" data-idx="${idx}" onclick="pickAC(${idx})"><span class="icon">${g.icon}</span><span>${disp}</span></div>`;
       }
-      html+=`</div>`;
     }
   }
-  
-  if(!all.length){
-    box.classList.remove('show');
-    input.setAttribute('aria-expanded','false');
-    return;
-  }
-  
-  box.innerHTML=html;box.classList.add('show');box._all=all;
+  if(!all.length){ hideAC(); return; }
+  box.innerHTML = html;
+  box.style.display = 'block';
+  box._all = all;
   input.setAttribute('aria-expanded','true');
-  STATE.acFocusIdx=-1;updateFocus();
+  STATE.acFocusIdx = -1;
+  updateFocus();
 }
-
 function updateFocus(){
-  const items=document.getElementById('acBox').querySelectorAll('.ac-item');
-  items.forEach((el,i)=>el.classList.toggle('focus',i===STATE.acFocusIdx));
-  const cur=items[STATE.acFocusIdx];if(cur)cur.scrollIntoView({block:'nearest'});
+  const box = document.getElementById('acDropdown');
+  const items = box.querySelectorAll('.ac-item');
+  items.forEach((el,i)=>el.classList.toggle('focused', i === STATE.acFocusIdx));
+  const cur = items[STATE.acFocusIdx];
+  if(cur) cur.scrollIntoView({block:'nearest'});
 }
-
 function pickAC(idx){
-  const box=document.getElementById('acBox');
-  const all=box._all||[];
-  if(idx<0||idx>=all.length)return;
-  const input=document.getElementById('searchInput');
-  const toks=input.value.trim().split(/\s+/);
-  toks[toks.length-1]=all[idx];
-  input.value=toks.join(' ')+' ';
-  box.classList.remove('show');
-  input.setAttribute('aria-expanded','false');
-  input.focus();doSearch();
+  const box = document.getElementById('acDropdown');
+  const all = box._all || [];
+  if(idx<0 || idx>=all.length) return;
+  const pick = all[idx];
+  const input = document.getElementById('searchInput');
+  const toks = input.value.trim().split(/\s+/);
+  toks[toks.length-1] = pick;
+  input.value = toks.join(' ');
+  hideAC();
+  input.focus();
+  performSearch(input.value);
 }
-
+function hideAC(){
+  const box = document.getElementById('acDropdown');
+  box.style.display = 'none';
+  STATE.acFocusIdx = -1;
+  document.getElementById('searchInput').setAttribute('aria-expanded','false');
+}
 function clearSearch(){
-  const input=document.getElementById('searchInput');
-  input.value='';
-  document.getElementById('clearBtn').classList.remove('show');
-  document.getElementById('acBox').classList.remove('show');
-  input.setAttribute('aria-expanded','false');
-  clearResults();input.focus();
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').style.display = 'none';
+  hideAC();
+  clearResults();
 }
-
 function clearResults(){
-  document.getElementById('resultCount').innerHTML='';
-  document.getElementById('resultList').innerHTML='';
-  STATE.lastTokens=[];
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('resultSummary').innerHTML = '';
+  STATE.lastTokens = [];
 }
 
-function showSkeleton(){
-  document.getElementById('resultCount').innerHTML='';
-  document.getElementById('resultList').innerHTML=`
-    <div class="skeleton-card">
-      <div class="skeleton-line mid"></div>
-      <div class="skeleton-line short"></div>
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
-    </div>
-    <div class="skeleton-card">
-      <div class="skeleton-line mid"></div>
-      <div class="skeleton-line short"></div>
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
-    </div>
-  `;
-}
+/* 검색 (가중치 스코어링 + 다중 토큰 AND) */
+function performSearch(q){
+  if(!STATE.database[STATE.currentYear]) return;
+  const rows = STATE.database[STATE.currentYear];
+  const tokens = q.trim().split(/\s+/).filter(t=>t.length>0).map(t=>t.toLowerCase());
+  STATE.lastTokens = tokens;
+  if(tokens.length === 0){ clearResults(); return; }
 
-function doSearch(){
-  const input=document.getElementById('searchInput');
-  const q=input.value.trim();
-  document.getElementById('acBox').classList.remove('show');
-  input.setAttribute('aria-expanded','false');
-  if(!q){clearResults();return;}
-  
-  const tokens=q.split(/\s+/).filter(x=>x);
-  STATE.lastTokens=tokens;
+  const scored = rows.map((r, idx)=>{
+    let total = 0, matchedAll = true;
 
-  showSkeleton();
+    const sch   = (getField(r,['초등학교명','초등학교'])||'').replace(/\s/g,'').toLowerCase();
+    const dong  = (getField(r,['법정동(읍∙면)','법정동','읍면'])||'').replace(/\s/g,'').toLowerCase();
+    const mid   = (getField(r,['중학구','중학교'])||'').replace(/\s/g,'').toLowerCase();
+    const apt   = (getField(r,['공동주택명','공동주택'])||'').replace(/\s/g,'').toLowerCase();
+    const ri    = (getField(r,['법정리(통)','법정리'])||'').replace(/\s/g,'').toLowerCase();
+    const ban   = (getField(r,['행정리(반)','행정리'])||'').replace(/\s/g,'').toLowerCase();
+    const bunji = (getField(r,['구역(번지)','구역'])||'').replace(/\s/g,'').toLowerCase();
+    const excl  = (getField(r,['제외 구역(번지)','제외구역(번지)','제외 구역','제외구역'])||'').replace(/\s/g,'').toLowerCase();
+    const fullAddr = [
+      getField(r,['법정동(읍∙면)','법정동','읍면']),
+      getField(r,['법정리(통)','법정리']),
+      getField(r,['행정리(반)','행정리']),
+      getField(r,['구역(번지)','구역'])
+    ].join('').replace(/\s/g,'').toLowerCase();
 
-  setTimeout(()=>{
-    const rows=STATE.database[STATE.currentYear]||[];
-    const hits=rows.filter(r=>{
-      const hay=Object.values(r).join(' ').toLowerCase();
-      return tokens.every(t=>hay.includes(t.toLowerCase()));
+    tokens.forEach(token=>{
+      let s = 0;
+      const nums = token.match(/\d+/g) || [];
+      const textOnly = token.replace(/[0-9통반리번지길\s]/g,'');
+
+      const elemTok = token.replace(/초등학교$/,'초');
+      const midTok  = token.replace(/중학교$/,'중').replace(/중학구$/,'중');
+      const midTarget = midTok.endsWith('중') ? midTok.replace(/중$/,'중학구') : midTok;
+
+      if(sch === elemTok || sch === elemTok+'초' || sch === elemTok+'초등학교') s += 100000;
+      else if(sch.startsWith(elemTok)) s += 50000;
+      else if(sch.includes(elemTok)) s += 10000;
+
+      if(apt === token || apt === token+'아파트') s += 100000;
+      else if(apt.startsWith(token)) s += 50000;
+      else if(apt.includes(token)) s += 10000;
+
+      if(mid === midTok || mid === midTok+'중' || mid === midTok+'중학교' || mid === midTok+'중학구') s += 100000;
+      else if(mid.startsWith(midTok)) s += 50000;
+      else if(mid.includes(midTarget)) s += 10000;
+
+      if(dong === token || dong === token+'동' || dong === token+'리') s += 100000;
+      else if(dong.startsWith(token)) s += 50000;
+      else if(textOnly && dong.includes(textOnly)) s += 5000;
+
+      // 법정리·행정리 텍스트 매칭 (시골 리 이름: 검단리, 상검단 등)
+      const riUnits  = ri.split(/[\/,]/).map(x=>x.trim()).filter(Boolean);
+      const banUnits = ban.split(/[\/,]/).map(x=>x.trim()).filter(Boolean);
+      if(riUnits.some(x=>x===token) || banUnits.some(x=>x===token)) s += 80000;
+      else if(!/^\d/.test(token) && (ri.includes(token) || ban.includes(token))) s += 8000;
+
+      // 번지 매칭: 하이픈 포함 패턴(952-22)은 정확매칭 우선, 단순 숫자는 부분매칭
+      if(/\d/.test(token)){
+        if(bunji.includes(token)) s += 60000;
+        else if(excl.includes(token)) s += 15000;
+        else nums.forEach(n=>{ if(fullAddr.includes(n)) s += 2000; });
+      }
+
+      // 추첨학교 매핑
+      if(mid.includes('추첨') && [...STATE.추첨학교Map.entries()].some(([full,short])=>
+        token.includes(full.replace(/\s/g,'').toLowerCase()) ||
+        (short && token.includes(short.replace(/\s/g,'').toLowerCase()))
+       )){
+        s += 25000;
+      }
+
+      if(s === 0) matchedAll = false;
+      else total += s;
     });
-    
-    renderResults(hits,tokens);
-  },200);
+
+    return (matchedAll && total > 0) ? { row:r, score:total, idx:idx } : null;
+  }).filter(x=>x!==null).sort((a,b)=>{
+    if(b.score !== a.score) return b.score - a.score;
+    return a.idx - b.idx;
+  });
+
+  renderResults(scored.map(x=>x.row));
 }
 
-function renderResults(hits,tokens){
-  const cntEl=document.getElementById('resultCount');
-  const listEl=document.getElementById('resultList');
-  
-  if(!hits.length){
-    cntEl.innerHTML='';
-    const pool=[...STATE.AC.초등,...STATE.AC.동리,...STATE.AC.아파트,...STATE.AC.중등];
-    const lastTok=tokens[tokens.length-1]||'';
-    const sug=pool.map(x=>({x,s:scoreMatch(lastTok,x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(o=>o.x);
-    let sugHtml='';
-    if(sug.length) {
-      sugHtml=`<div class="fuzzy-sug">혹시 찾으시는 정보가 이것인가요? ${sug.map(s=>`<a data-sug="${esc(s)}" onclick="pickSug(this.dataset.sug)">${esc(s)}</a>`).join('')}</div>`;
+/* 결과 렌더링 */
+function renderResults(results){
+  const resultDiv = document.getElementById('results');
+  const summaryDiv = document.getElementById('resultSummary');
+  resultDiv.innerHTML = '';
+
+  if(!results.length){
+    summaryDiv.innerHTML = '';
+    const pool = [...STATE.AC.초등, ...STATE.AC.동리, ...STATE.AC.아파트, ...STATE.AC.중등];
+    const lastTok = STATE.lastTokens[STATE.lastTokens.length-1] || '';
+    const sug = pool.map(x=>({x, s:scoreMatch(lastTok,x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(o=>o.x);
+    let sugHtml = '';
+    if(sug.length){
+      sugHtml = `<div class="fuzzy-sug">이런 건 어떠세요? ${sug.map(s=>`<a data-sug="${esc(s)}" onclick="pickSug(this.dataset.sug)">${esc(s)}</a>`).join('')}</div>`;
     }
-    listEl.innerHTML=`
-      <div class="empty">
-        <div class="empty-title">🔍 검색 결과를 찾지 못했습니다.</div>
-        <div>학교명이나 공동주택명, 행정동·리 정보를 다시 한번 확인해 주세요.</div>
-        <div style="margin-top:8px;font-size:13px;color:#6b7280">(예: 호암동, 칠금초, 푸르지오)</div>
-        ${sugHtml}
-      </div>
-    `;
+    resultDiv.innerHTML = `<div class="empty"><div class="empty-title">검색 결과가 없습니다</div><div>다른 키워드로 검색해 주세요</div>${sugHtml}</div>`;
     return;
   }
-  
-  cntEl.innerHTML=`<b>${hits.length}</b>건의 데이터가 조회되었습니다.`;
-  
-  const grouped={};
-  for(const r of hits){
-    const elem=getField(r,['초등학교명','초등학교'])||'(초등학교 미지정)';
-    const mid=getField(r,['중학구','중학교'])||'';
-    const key = elem + '||' + mid; 
-    
-    if(!grouped[key]) grouped[key] = { elem: elem, mid: mid, rows: [] };
-    grouped[key].rows.push(r);
-  }
-  
-  let html='';
-  for(const groupData of Object.values(grouped)) {
-    html+=renderGroup(groupData.elem, groupData.mid, groupData.rows);
-  }
-  listEl.innerHTML=html;
-}
 
-function renderGroup(elem, mid, rows){
-  const r0=rows[0];
-  const mJoint=getField(r0,['중학교 공동학구']);
-  const mWay=getField(r0,['중학교 공동(일방)학구']);
-  const chuchum=getField(r0,['추첨학교']);
-  
-  let midBlock='';
-  if(mid){
-    let midTarget='';
-    if(chuchum)midTarget=`대상: ${chuchum}`;
-    midBlock=`<div class="mid-col">
-      <div class="col-head">🎓 중학교 / 중학구</div>
-      <div class="school-name">${hl(mid)}</div>
-      ${midTarget?`<div class="school-target">${hl(midTarget)}</div>`:''}
-      ${mJoint?`<div class="tags"><span class="tag tag-mjoint">🚌 중등 공동학구: ${hl(mJoint)}</span></div>`:''}
-      ${mWay?`<div class="tags"><span class="tag tag-mway">🌳 중등 공동(일방)학구: ${hl(mWay)}</span></div>`:''}
-    </div>`;
-  }else{
-    midBlock=`<div class="mid-col"><div class="col-head">🎓 중학교 / 중학구</div><div style="color:#9ca3af;font-size:13px">-</div></div>`;
+  summaryDiv.innerHTML = `<strong>${results.length}건</strong>의 결과가 있습니다.`;
+
+  let html = '';
+  for(const r of results.slice(0, 500)){
+    html += renderCard(r);
   }
-  
-  let elemRows='';
-  for(const r of rows) elemRows+=renderElemRow(r);
-  
-  const elemBlock=`<div class="elem-col">
-    <div class="col-head">🏫 초등학교</div>
-    <div class="school-name">${hl(elem)}</div>
-    ${elemRows}
+  resultDiv.innerHTML = html;
+}
+function renderCard(r){
+  const elem = getField(r,['초등학교명','초등학교']) || '(미지정)';
+  const mid  = getField(r,['중학구','중학교']) || '';
+  const isChu = mid.includes('추첨');
+  const midLabel = isChu
+    ? `${hl('충주시학교군')}<span class="s-sub">(추첨배정)</span>`
+    : hl(mid.replace(/중학구$/,'중학교'));
+  const midSub = isChu ? `<div class="mid-target">대상: ${esc(STATE.dynamicMiddleList)}</div>` : '';
+
+  const mJoint = getField(r,['중학교 공동학구']);
+  const mWay   = getField(r,['중학교 공동(일방)학구']);
+
+  const addrBlocks = renderAddrBlock(r);
+
+  const midTags = [];
+  if(mJoint) midTags.push(`<span class="tag tag-mjoint">🚌 중등 공동학구: ${hl(mJoint)}</span>`);
+  if(mWay)   midTags.push(`<span class="tag tag-mway">🌳 중등 공동(일방)학구: ${hl(mWay)}</span>`);
+  const midTagRow = midTags.length ? `<div class="mid-tags-row">${midTags.join('')}</div>` : '';
+
+  return `<div class="result-card">
+    <div class="card-top">
+      <div class="school-box elem"><span class="s-label">🏫 초등학교</span><span class="s-name">${hl(elem)}</span></div>
+      <div class="school-box mid-box"><span class="s-label">🎓 중학교 / 중학구</span><span class="s-name">${midLabel}</span>${midSub}</div>
+    </div>
+    ${addrBlocks}
+    ${midTagRow}
   </div>`;
-  
-  return `<div class="card"><div class="card-grid">${elemBlock}${midBlock}</div></div>`;
 }
+function renderAddrBlock(r){
+  const dong  = getField(r,['법정동(읍∙면)','법정동','읍면']);
+  const ri    = getField(r,['법정리(통)','법정리']);
+  const ban   = getField(r,['행정리(반)','행정리']);
+  const bunji = getField(r,['구역(번지)','구역']);
+  const apt   = getField(r,['공동주택명','공동주택']);
+  const eJoint= getField(r,['공동학구 초등학교','공동학구 학교','공동학구']);
+  const eWay  = getField(r,['공동(일방)학구 초등학교','공동(일방)학구 학교','공동(일방)학구']);
+  const excl  = getField(r,['제외 구역(번지)','제외구역(번지)','제외 구역','제외구역']);
+  const note  = getField(r,['참고']);
+  const center= getField(r,['행정복지센터']);
 
-function renderElemRow(r){
-  const dong=getField(r,['법정동(읍∙면)','법정동','읍면']);
-  const ri=getField(r,['법정리(통)','법정리']);
-  const ban=getField(r,['행정리(반)','행정리']);
-  const bunji=getField(r,['구역(번지)','구역']);
-  const excl=getField(r,['제외 구역(번지)','제외 구역','제외구역']);
-  const apt=getField(r,['공동주택명','공동주택']);
-  const eJoint=getField(r,['공동학구 초등학교','공동학구']);
-  const eWay=getField(r,['공동(일방)학구 초등학교','공동(일방)학구']);
-  const note=getField(r,['참고']);
-  const center=getField(r,['행정복지센터']);
-  
-  const addrParts=[];
-  if(dong)addrParts.push(hl(dong));
-  if(ri)addrParts.push(hl(ri));
-  if(ban)addrParts.push(hl(ban));
-  if(bunji)addrParts.push(hl(bunji));
-  
-  const addrLine=addrParts.length?`<div class="addr-row"><span class="addr-icon">📍</span><span class="addr-text">${addrParts.join(' ')}</span></div>`:'';
-  
-  const tags=[];
-  if(apt)tags.push(`<span class="tag tag-apt">🏢 ${hl(apt)}</span>`);
-  if(excl)tags.push(`<span class="tag tag-excl">🚫 제외 구역: ${hl(excl)}</span>`);
-  if(note)tags.push(`<span class="tag tag-note">📝 참고: ${hl(note)}</span>`);
-  if(eJoint)tags.push(`<span class="tag tag-ejoint">🚌 공동학구: ${hl(eJoint)}</span>`);
-  if(eWay)tags.push(`<span class="tag tag-eway">🌳 공동(일방)학구: ${hl(eWay)}</span>`);
-  if(center)tags.push(`<span class="tag tag-center">☎ 행정복지센터: ${hl(center)}</span>`);
-  
-  return addrLine+(tags.length?`<div class="tags">${tags.join('')}</div>`:'');
+  const addrText = [dong,ri,ban,bunji].filter(Boolean).map(s=>hl(s)).join(' ');
+  const addrLine = addrText
+    ? `<div class="addr-row"><div class="addr-icon">${HOME_SVG}</div><span>${addrText}</span></div>`
+    : '';
+
+  const tags = [];
+  if(apt)    tags.push(`<span class="tag tag-apt">🏢 ${hl(apt)}</span>`);
+  if(eJoint) tags.push(`<span class="tag tag-ejoint">🚌 공동학구: ${hl(eJoint)}</span>`);
+  if(eWay)   tags.push(`<span class="tag tag-eway">🌳 공동(일방)학구: ${hl(eWay)}</span>`);
+  if(excl)   tags.push(`<span class="tag tag-excl">🚫 제외 구역: ${hl(excl)}</span>`);
+  if(note)   tags.push(`<span class="tag tag-note">📝 참고: ${hl(note)}</span>`);
+  if(center) tags.push(`<span class="tag tag-center">🏠 행정복지센터: ${hl(center)}</span>`);
+  const tagRow = tags.length ? `<div class="tags-row">${tags.join('')}</div>` : '';
+
+  if(!addrLine && !tagRow) return '';
+  return `<div class="addr-block">${addrLine}${tagRow}</div>`;
 }
-
 function pickSug(s){
-  const input=document.getElementById('searchInput');
-  input.value=s;
-  doSearch();
+  const input = document.getElementById('searchInput');
+  input.value = s;
+  performSearch(s);
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
-  const params=new URLSearchParams(window.location.search);
-  STATE.isAdmin=params.has('admin');
-  if(STATE.isAdmin){
-    document.getElementById('adminBtnWrap').style.display='block';
-    document.getElementById('adminPanel').classList.add('show');
-  }
+/* 검색창 이벤트 */
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
+const acDropdown = document.getElementById('acDropdown');
 
-  const input=document.getElementById('searchInput');
-  const clearBtn=document.getElementById('clearBtn');
-  
-  input.addEventListener('input',()=>{
-    clearBtn.classList.toggle('show',!!input.value);
-    showAC();
-  });
-  
-  input.addEventListener('keydown',e=>{
-    const box=document.getElementById('acBox');
-    const open=box.classList.contains('show');
-    const items=box.querySelectorAll('.ac-item');
-    
-    if(e.key==='ArrowDown'&&open){
-      e.preventDefault();
-      STATE.acFocusIdx=Math.min(STATE.acFocusIdx+1,items.length-1);
-      updateFocus();
-    }else if(e.key==='ArrowUp'&&open){
-      e.preventDefault();
-      STATE.acFocusIdx=Math.max(STATE.acFocusIdx-1,-1);
-      updateFocus();
-    }else if(e.key==='Enter'){
-      e.preventDefault();
-      if(open&&STATE.acFocusIdx>=0){
-        pickAC(STATE.acFocusIdx);
-      }else{
-        box.classList.remove('show');
-        input.setAttribute('aria-expanded','false');
-        doSearch();
-      }
-    }else if(e.key==='Escape'){
-      box.classList.remove('show');
-      input.setAttribute('aria-expanded','false');
-    }
-  });
-  
-  document.addEventListener('click',e=>{
-    if(!e.target.closest('.search-wrap')){
-      document.getElementById('acBox').classList.remove('show');
-      input.setAttribute('aria-expanded','false');
-    }
-  });
-
-  initUser();
+searchInput.addEventListener('input', function(){
+  const q = this.value.trim();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if(q.length < 1){ hideAC(); clearResults(); return; }
+  showAC();
+  if(q.length >= 2) performSearch(q);
+  else clearResults();
 });
+searchInput.addEventListener('keydown', function(e){
+  const open = acDropdown.style.display === 'block';
+  const items = acDropdown.querySelectorAll('.ac-item');
+  if(e.key === 'ArrowDown' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
+    updateFocus();
+  } else if(e.key === 'ArrowUp' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
+    updateFocus();
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
+    else { hideAC(); performSearch(searchInput.value); }
+  } else if(e.key === 'Escape'){
+    hideAC();
+  }
+});
+document.addEventListener('click', function(e){
+  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
+
+updateStatusUI();
 </script>
 </body>
 </html>
+"""
+
+with open('/home/user/통학구역검색_최종.html','w',encoding='utf-8') as f:
+    f.write(merged_html)
+
+print(f"저장 완료: {len(merged_html):,}자")
