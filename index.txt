@@ -19,17 +19,6 @@ body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',-apple-syste
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{color:#4b5563;font-size:15px;font-weight:500}
 
-<div class="container">
-
-<!-- 로딩 화면 -->
-<div id="loadingView">
-  <div class="spinner"></div>
-  <div class="loading-text">통학구역 데이터를 불러오는 중입니다…</div>
-</div>
-
-<!-- 관리자 화면 -->
-  <div id="adminView" style="display:none">
-    <div class="admin-header"><h2>⚙️ 시스템 웹마스터 설정 패널</h2></div>
 #adminView{background:#fff;padding:40px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.05);border-top:5px solid #0046a0}
 .admin-header{text-align:center;margin-bottom:30px;border-bottom:2px solid #eee;padding-bottom:20px}
 .admin-header h2{color:#2c3e50;margin:0;font-size:24px}
@@ -137,9 +126,14 @@ mark.hit{background:linear-gradient(180deg,transparent 55%,#fde68a 55%,#fde68a 9
 </head>
 <body>
 <div class="container">
+<!-- 로딩 화면 -->
+  <div id="loadingView">
+    <div class="spinner"></div>
+    <div class="loading-text">통학구역 데이터를 불러오는 중입니다…</div>
+  </div>
 
   <!-- 관리자 화면 -->
-  <div id="adminView">
+  <div id="adminView" style="display:none">
     <div class="admin-header"><h2>⚙️ 시스템 웹마스터 설정 패널</h2></div>
     <div class="admin-controls">
       <div class="control-group">
@@ -793,6 +787,46 @@ searchInput.addEventListener('keydown', function(e){
 });
 document.addEventListener('click', function(e){
   if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
+
+document.addEventListener('click', function(e){
+  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const year = document.getElementById('adminYearSelect').value;
+  const reader = new FileReader();
+
+  reader.onload = function(ev) {
+    const buffer = ev.target.result;
+    let text = new TextDecoder('utf-8').decode(buffer);
+
+    if (text.includes('\uFFFD')) {
+      try {
+        text = new TextDecoder('euc-kr').decode(buffer);
+      } catch (err) {}
+    }
+
+    const data = parseCSV(text);
+
+    if (data && data.length > 0) {
+      processParsedData(data, year);
+    } else {
+      setAdminStatus('파일 형식이 올바르지 않거나 데이터가 없습니다.', false);
+    }
+
+    e.target.value = '';
+  };
+
+  reader.onerror = function() {
+    setAdminStatus('파일을 읽는 중 오류가 발생했습니다.', false);
+    e.target.value = '';
+  };
+
+  reader.readAsArrayBuffer(file);
 });
 
 updateStatusUI();
