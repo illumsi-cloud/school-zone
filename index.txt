@@ -352,16 +352,13 @@ function initAdminYearSelect(){
 }
 
 /* 2. 서버 업로드 파일 자동 탐지 및 로드 (Fetch API) */
-window.onload = async function() {
+document.addEventListener('DOMContentLoaded', async function() {
   const loadingView = document.getElementById('loadingView');
   const adminView   = document.getElementById('adminView');
   const today = new Date();
   const y = today.getFullYear();
 
   initAdminYearSelect();
-
-  const yearsToTry = [y, y + 1];
-  let loadedAny = false;
   
   // 탐색 대상 연도 배열 생성 (차년도, 당해년도, 전년도 순차 탐색)
   const yearsToTry = [y + 1, y, y - 1]; 
@@ -407,7 +404,7 @@ window.onload = async function() {
     errBox.textContent = '서버에 등록된 통학구역 데이터 파일(CSV)이 없습니다. 전산 담당자에게 데이터 업로드를 요청해 주세요.';
     adminStatus.appendChild(errBox);
   }
-};
+});
 
 /* 3. 데이터 화면 갱신 */
 function processParsedData(data, selectedYear) {
@@ -488,7 +485,7 @@ function buildAC(){
     if(elem) s초.add(elem);
     getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
     getField(r,['초등학교 공동(일방)학구','공동(일방)학구 초등학교','초 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
-   if(mid) mid.split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    if(mid) mid.split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
     getField(r,['중학교 공동학구','중 공동학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
     getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
     if(apt) apt.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s아파트.add(t);});
@@ -788,78 +785,89 @@ function pickSug(s){
 }
 
 /* 검색창 이벤트 */
-const searchInput = document.getElementById('searchInput');
-const clearBtn = document.getElementById('clearBtn');
-const acDropdown = document.getElementById('acDropdown');
+document.addEventListener('DOMContentLoaded', function () {
+  const searchInput = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('clearBtn');
+  const acDropdown = document.getElementById('acDropdown');
+  const fileInput = document.getElementById('fileInput');
+  const searchWrap = document.getElementById('searchWrap');
 
-searchInput.addEventListener('input', function(){
-  const q = this.value.trim();
-  clearBtn.style.display = q ? 'block' : 'none';
-  if(q.length < 1){ hideAC(); clearResults(); return; }
-  showAC();
-  if(q.length >= 2) performSearch(q);
-  else clearResults();
-});
-searchInput.addEventListener('keydown', function(e){
-  const open = acDropdown.style.display === 'block';
-  const items = acDropdown.querySelectorAll('.ac-item');
-  if(e.key === 'ArrowDown' && open){
-    e.preventDefault();
-    STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
-    updateFocus();
-  } else if(e.key === 'ArrowUp' && open){
-    e.preventDefault();
-    STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
-    updateFocus();
-  } else if(e.key === 'Enter'){
-    e.preventDefault();
-    if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
-    else { hideAC(); performSearch(searchInput.value); }
-  } else if(e.key === 'Escape'){
-    hideAC();
+  if (searchInput && clearBtn && acDropdown) {
+    searchInput.addEventListener('input', function(){
+      const q = this.value.trim();
+      clearBtn.style.display = q ? 'block' : 'none';
+      if(q.length < 1){ hideAC(); clearResults(); return; }
+      showAC();
+      if(q.length >= 2) performSearch(q);
+      else clearResults();
+    });
+
+    searchInput.addEventListener('keydown', function(e){
+      const open = acDropdown && acDropdown.style.display === 'block';
+      const items = acDropdown ? acDropdown.querySelectorAll('.ac-item') : [];
+      if(e.key === 'ArrowDown' && open){
+        e.preventDefault();
+        STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
+        updateFocus();
+      } else if(e.key === 'ArrowUp' && open){
+        e.preventDefault();
+        STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
+        updateFocus();
+      } else if(e.key === 'Enter'){
+        e.preventDefault();
+        if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
+        else { hideAC(); performSearch(searchInput.value); }
+      } else if(e.key === 'Escape'){
+        hideAC();
+      }
+    });
   }
+
+  if (searchWrap) {
+    document.addEventListener('click', function(e){
+      if(!searchWrap.contains(e.target)) hideAC();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const yearEl = document.getElementById('adminYearSelect');
+      const year = yearEl ? yearEl.value : '';
+      const reader = new FileReader();
+
+      reader.onload = function(ev) {
+        const buffer = ev.target.result;
+        let text = new TextDecoder('utf-8').decode(buffer);
+
+        if (text.includes('\uFFFD')) {
+          try { text = new TextDecoder('euc-kr').decode(buffer); } catch (err) {}
+        }
+
+        const data = parseCSV(text);
+        if (data && data.length > 0 && year) {
+          processParsedData(data, year);
+        } else {
+          setAdminStatus('파일 형식이 올바르지 않거나 데이터가 없습니다.', false);
+        }
+
+        e.target.value = '';
+      };
+
+      reader.onerror = function() {
+        setAdminStatus('파일을 읽는 중 오류가 발생했습니다.', false);
+        e.target.value = '';
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // 상태 UI 갱신은 초기화 시 한 번 실행
+  updateStatusUI();
 });
-document.addEventListener('click', function(e){
-  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
-});
-
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const year = document.getElementById('adminYearSelect').value;
-  const reader = new FileReader();
-
-  reader.onload = function(ev) {
-    const buffer = ev.target.result;
-    let text = new TextDecoder('utf-8').decode(buffer);
-
-    if (text.includes('\uFFFD')) {
-      try {
-        text = new TextDecoder('euc-kr').decode(buffer);
-      } catch (err) {}
-    }
-
-    const data = parseCSV(text);
-
-    if (data && data.length > 0) {
-      processParsedData(data, year);
-    } else {
-      setAdminStatus('파일 형식이 올바르지 않거나 데이터가 없습니다.', false);
-    }
-
-    e.target.value = '';
-  };
-
-  reader.onerror = function() {
-    setAdminStatus('파일을 읽는 중 오류가 발생했습니다.', false);
-    e.target.value = '';
-  };
-
-  reader.readAsArrayBuffer(file);
-});
-
-updateStatusUI();
 </script>
 </body>
 </html>
