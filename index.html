@@ -455,9 +455,9 @@ function buildAC(){
     if(elem) s초.add(elem);
     getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
     getField(r,['초등학교 공동(일방)학구','공동(일방)학구 초등학교','초 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
-   if(mid) mid.split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
-   getField(r,['중학교 공동학구','중 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
-   getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+   if(mid) mid.split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동학구','중 공동학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
     if(apt) apt.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s아파트.add(t);});
   });
 
@@ -785,10 +785,6 @@ searchInput.addEventListener('keydown', function(e){
     hideAC();
   }
 });
-document.addEventListener('click', function(e){
-  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
-});
-
 document.addEventListener('click', function(e){
   if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
 });
