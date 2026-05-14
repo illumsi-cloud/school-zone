@@ -27,8 +27,6 @@ body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',-apple-syste
 .control-group{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap}
 .year-select{padding:10px 15px;font-size:15px;border-radius:6px;border:1px solid #0046a0;color:#0046a0;font-weight:bold;outline:none}
 .file-input{border:1px solid #ddd;padding:8px 12px;border-radius:6px;background:#fff;cursor:pointer;font-size:14px}
-.btn-empty-tab{background:#fff;border:2px solid #6c757d;color:#6c757d;padding:9px 15px;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer}
-.btn-empty-tab:hover{background:#f3f4f6}
 .guide-box{background:#fff;border:1px solid #ddd;padding:15px;border-radius:8px;margin-top:20px;font-size:13.5px;color:#444;line-height:1.6;text-align:left;display:inline-block;max-width:620px}
 .upload-status{margin-top:25px;padding:20px;border-radius:8px;background:#eef2f7;font-size:15px}
 .upload-status ul{margin:8px 0 0 0;padding-left:20px}
@@ -128,26 +126,22 @@ mark.hit{background:linear-gradient(180deg,transparent 55%,#fde68a 55%,#fde68a 9
 <body>
 <div class="container">
 
-<!-- 로딩 화면 -->
   <div id="loadingView">
     <div class="spinner"></div>
     <div class="loading-text">통학구역 데이터를 불러오는 중입니다…</div>
   </div>
 
-  <!-- 관리자 화면 -->
   <div id="adminView" style="display:none">
     <div class="admin-header"><h2>⚙️ 시스템 웹마스터 설정 패널</h2></div>
     <div class="admin-controls">
       <div class="control-group">
         <select id="adminYearSelect" class="year-select"></select>
         <input type="file" id="fileInput" class="file-input" accept=".csv">
-        <button class="btn-empty-tab" onclick="addEmptyNoticeTab()">+ 안내문 탭 추가</button>
       </div>
       <div class="guide-box">
         <strong style="color:#0046a0">💡 운영 가이드</strong><br>
         1. 파일의 형식은 <span style="font-weight:bold;color:#d93025">년도.csv (예: 2026.csv)</span>로 통일해 주세요.<br>
-        2. 차기 학년도에 "11월 중에 업로드 예정입니다" 문구를 나오게 하시려면,<br>
-        &nbsp;&nbsp;&nbsp;상단에서 학년도를 선택하신 후 <span style="font-weight:bold;color:#0046a0">[+ 안내문 탭 추가]</span> 버튼을 눌러주세요.
+        2. 차기 학년도 파일이 서버에 없으면 자동으로 "11월 중 반영 예정" 문구가 표출됩니다.
       </div>
       <div id="adminStatus"></div>
     </div>
@@ -155,7 +149,6 @@ mark.hit{background:linear-gradient(180deg,transparent 55%,#fde68a 55%,#fde68a 9
     <button class="btn-launch" onclick="launchService()">사용자 검색 페이지 열기 ➔</button>
   </div>
 
-  <!-- 사용자 화면 -->
   <div id="userView">
     <h2 class="header-title">충주시 초등학교 통학구역 및 중학구 검색</h2>
     <div class="year-tabs" id="tabContainer"></div>
@@ -194,7 +187,6 @@ mark.hit{background:linear-gradient(180deg,transparent 55%,#fde68a 55%,#fde68a 9
 /* 전역 상태 */
 const STATE = {
   database: {},
-  emptyTabs: [],
   currentYear: null,
   AC: { 동리:[], 초등:[], 중등:[], 아파트:[], 추첨약칭:[] },
   추첨학교Map: new Map(),
@@ -227,6 +219,7 @@ function parseSchoolName(str){
   if(m) return { full:m[1].trim(), short:m[2].trim() };
   return { full:str.trim(), short:null };
 }
+
 /* 하이라이트 */
 function hl(text){
   const t = String(text==null?'':text);
@@ -240,6 +233,7 @@ function hl(text){
   }
   return out;
 }
+
 /* Levenshtein 거리 (오타 보정) */
 function lev(a,b){
   const m=a.length,n=b.length;
@@ -256,22 +250,20 @@ function lev(a,b){
 /* 관리자 기능 */
 function setAdminStatus(msg, ok){
   const el = document.getElementById('adminStatus');
-  el.innerHTML = '';
+  el.replaceChildren();
   const box = document.createElement('div');
   box.className = ok ? 'status-msg ok' : 'status-msg err';
   box.textContent = msg;
   el.appendChild(box);
-  setTimeout(()=>{ el.innerHTML=''; }, 4000);
+  setTimeout(()=>{ el.replaceChildren(); }, 4000);
 }
+
 function updateStatusUI(){
   const listUi = document.getElementById('uploadedList');
-  listUi.innerHTML = '';
-  const allTabs = [...new Set([...Object.keys(STATE.database), ...STATE.emptyTabs])].sort();
-  if(allTabs.length === 0){
-    listUi.innerHTML = '<li style="color:#888">아직 등록된 항목이 없습니다.</li>';
-    return;
-  }
-  allTabs.forEach(year=>{
+  listUi.replaceChildren();
+  const y = new Date().getFullYear();
+  
+  [String(y), String(y + 1)].forEach(year=>{
     const li = document.createElement('li');
     if (STATE.database[year]) {
       li.textContent = `✅ ${year}학년도 데이터 탑재됨 (${STATE.database[year].length}행)`;
@@ -283,8 +275,9 @@ function updateStatusUI(){
     }
     listUi.appendChild(li);
   });
-} //
-/* 1. 자체 내장 CSV 파서 (외부 라이브러리 PapaParse 완벽 대체) */
+}
+
+/* 1. 자체 내장 CSV 파서 */
 function parseCSV(text) {
   const result = [];
   let row = [];
@@ -298,7 +291,7 @@ function parseCSV(text) {
     if (char === '"') {
       if (inQuotes && nextChar === '"') {
         currentValue += '"';
-        i++; // 엑셀 이스케이프 따옴표 건너뛰기
+        i++;
       } else {
         inQuotes = !inQuotes;
       }
@@ -324,7 +317,7 @@ function parseCSV(text) {
   const headers = result[0].map(h => h.trim());
   const data = [];
   for (let i = 1; i < result.length; i++) {
-    if (result[i].length === 1 && result[i][0].trim() === '') continue; // 빈 줄 무시
+    if (result[i].length === 1 && result[i][0].trim() === '') continue;
     const obj = {};
     for (let j = 0; j < headers.length; j++) {
       obj[headers[j]] = result[i][j] !== undefined ? result[i][j] : '';
@@ -339,12 +332,12 @@ function initAdminYearSelect(){
   if(!select) return;
 
   const y = new Date().getFullYear();
-  select.innerHTML = '';
+  select.replaceChildren();
 
   [y, y + 1].forEach(year => {
     const option = document.createElement('option');
     option.value = String(year);
-    option.textContent = `${year}학년도`;
+    option.textContent = year + '학년도';
     select.appendChild(option);
   });
 
@@ -352,89 +345,65 @@ function initAdminYearSelect(){
 }
 
 /* 2. 서버 업로드 파일 자동 탐지 및 로드 (Fetch API) */
-document.addEventListener('DOMContentLoaded', async function() {
+window.onload = async function() {
   const loadingView = document.getElementById('loadingView');
   const adminView   = document.getElementById('adminView');
   const today = new Date();
   const y = today.getFullYear();
-
+  
   initAdminYearSelect();
   
-  // 탐색 대상 연도 배열 생성 (차년도, 당해년도, 전년도 순차 탐색)
-  const yearsToTry = [y + 1, y, y - 1]; 
+  const yearsToTry = [y, y + 1]; 
   let loadedAny = false;
 
   for (const year of yearsToTry) {
     try {
-      // YYYY.csv 파일 비동기 호출
       const response = await fetch(`./${year}.csv`);
-      
-      if (response.ok) { // 서버에 해당 연도의 파일이 존재하는 경우 파싱 진행
+      if (response.ok) { 
         const buffer = await response.arrayBuffer();
         let text = new TextDecoder('utf-8').decode(buffer);
         
-        // 인코딩 보정 (UTF-8 디코딩 실패 시 EUC-KR 재시도)
         if (text.includes('\uFFFD')) {
-          text = new TextDecoder('euc-kr').decode(buffer);
+          try { text = new TextDecoder('euc-kr').decode(buffer); } catch (err) {}
         }
         
-        // 파싱된 데이터를 전역 객체에 탑재
         STATE.database[String(year)] = parseCSV(text);
-        STATE.emptyTabs = STATE.emptyTabs.filter(t => t !== String(year));
         loadedAny = true;
       }
-    } catch (error) {
-      // 파일 부재 시 예외 처리 없이 다음 연도 탐색 진행
-    }
+    } catch (error) {}
   }
 
-  // 데이터 로드 성공 시 사용자 화면 표출
   loadingView.style.display = 'none';   
 
   if (loadedAny) {
     document.getElementById('userView').style.display = 'block';
-    const loadedYears = Object.keys(STATE.database).sort().reverse();
-    switchYear(loadedYears[0]);
+    switchYear(STATE.database[String(y)] ? String(y) : String(y + 1));
   } else {
     adminView.style.display = 'block';
     const adminStatus = document.getElementById('adminStatus');
-    adminStatus.innerHTML = '';
+    adminStatus.replaceChildren();
     const errBox = document.createElement('div');
     errBox.className = 'status-msg err';
     errBox.textContent = '서버에 등록된 통학구역 데이터 파일(CSV)이 없습니다. 전산 담당자에게 데이터 업로드를 요청해 주세요.';
     adminStatus.appendChild(errBox);
+    updateStatusUI();
   }
-});
+};
 
 /* 3. 데이터 화면 갱신 */
 function processParsedData(data, selectedYear) {
   STATE.database[selectedYear] = data;
-  STATE.emptyTabs = STATE.emptyTabs.filter(y=>y!==selectedYear);
   updateStatusUI();
-  setAdminStatus(`✅ ${selectedYear}학년도 데이터 탑재 완료 (${data.length}행)`, true);
+  setAdminStatus('✅ ' + selectedYear + '학년도 데이터 탑재 완료 (' + data.length + '행)', true);
 }
 
-function addEmptyNoticeTab(){
-  const year = document.getElementById('adminYearSelect').value;
-  if(STATE.database[year]){
-    setAdminStatus(`이미 ${year}학년도 데이터가 탑재되어 있습니다.`, false);
-    return;
-  }
-  if(!STATE.emptyTabs.includes(year)){
-    STATE.emptyTabs.push(year);
-    updateStatusUI();
-    setAdminStatus(`✅ ${year}학년도 안내문 탭이 추가되었습니다.`, true);
-  }
-}
 function launchService(){
-  const all = [...new Set([...Object.keys(STATE.database), ...STATE.emptyTabs])].sort();
-  if(all.length === 0){ setAdminStatus('CSV 업로드 또는 안내문 탭을 먼저 추가해 주세요.', false); return; }
+  const y = new Date().getFullYear();
   document.getElementById('adminView').style.display = 'none';
   document.getElementById('userView').style.display = 'block';
-  // 기본 선택: 데이터가 있는 가장 최근 연도 우선
-  const y = new Date().getFullYear();
   switchYear(STATE.database[String(y)] ? String(y) : String(y + 1));
 }
+
 function returnToAdmin(){
   document.getElementById('userView').style.display = 'none';
   document.getElementById('adminView').style.display = 'block';
@@ -444,9 +413,10 @@ function returnToAdmin(){
 function switchYear(year){
   STATE.currentYear = year;
   const container = document.getElementById('tabContainer');
-  container.innerHTML = '';
+  container.replaceChildren();
+  
   const baseYear = new Date().getFullYear();
-  [baseYear, baseYear + 1].forEach(y=>{
+  [baseYear, baseYear + 1].forEach(y => {
     const yearStr = String(y);
     const btn = document.createElement('button');
     const isActive = (yearStr === year);
@@ -456,6 +426,7 @@ function switchYear(year){
     btn.innerText = yearStr + '학년도';
     container.appendChild(btn);
   });
+  
   if(STATE.database[year]){
     document.getElementById('emptyMessage').style.display = 'none';
     document.getElementById('searchArea').style.display = 'block';
@@ -464,7 +435,7 @@ function switchYear(year){
   } else {
     document.getElementById('searchArea').style.display = 'none';
     document.getElementById('emptyMessage').style.display = 'block';
-    document.getElementById('emptyText').innerText = year + '학년도 안내문은 11월 중 제공 예정입니다.';
+    document.getElementById('emptyText').innerText = year + '학년도 통학구역 정보는 11월 중 반영 예정입니다.';
   }
 }
 
@@ -496,7 +467,6 @@ function buildAC(){
   STATE.AC.중등 = [...s중].sort();
   STATE.AC.아파트 = [...s아파트].sort();
 
-  // 추첨학교 동적 매핑
   STATE.추첨학교Map.clear();
   const chuRows = rows.filter(r => (getField(r,['중학구'])||'').includes('추첨'));
   chuRows.forEach(r=>{
@@ -510,7 +480,7 @@ function buildAC(){
   STATE.추첨학교Map.forEach((short, full)=>{
     STATE.AC.추첨약칭.push(full);
     if(short) STATE.AC.추첨약칭.push(short);
-    displayArr.push(short ? `${full}(${short})` : full);
+    displayArr.push(short ? full + '(' + short + ')' : full);
   });
   STATE.dynamicMiddleList = displayArr.join(', ');
 }
@@ -552,13 +522,13 @@ function showAC(){
   for(const g of groups){
     const scored = g.items.map(x=>({x, s:scoreMatch(tok, x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,6);
     if(scored.length){
-      html += `<div class="ac-group-label">${g.label}</div>`;
+      html += '<div class="ac-group-label">' + g.label + '</div>';
       for(const o of scored){
         const idx = all.length;
         all.push(o.x);
         const re = new RegExp(reEsc(tok),'gi');
-        const disp = esc(o.x).replace(re, m=>`<mark>${m}</mark>`);
-        html += `<div class="ac-item" role="option" data-idx="${idx}" onclick="pickAC(${idx})"><span class="icon">${g.icon}</span><span>${disp}</span></div>`;
+        const disp = esc(o.x).replace(re, m=>'<mark>' + m + '</mark>');
+        html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span class="icon">' + g.icon + '</span><span>' + disp + '</span></div>';
       }
     }
   }
@@ -603,12 +573,12 @@ function clearSearch(){
   clearResults();
 }
 function clearResults(){
-  document.getElementById('results').innerHTML = '';
-  document.getElementById('resultSummary').innerHTML = '';
+  document.getElementById('results').replaceChildren();
+  document.getElementById('resultSummary').textContent = '';
   STATE.lastTokens = [];
 }
 
-/* 검색 (가중치 스코어링 + 다중 토큰 AND) */
+/* 검색 */
 function performSearch(q){
   if(!STATE.database[STATE.currentYear]) return;
   const rows = STATE.database[STATE.currentYear];
@@ -659,20 +629,17 @@ function performSearch(q){
       else if(dong.startsWith(token)) s += 50000;
       else if(textOnly && dong.includes(textOnly)) s += 5000;
 
-      // 법정리·행정리 텍스트 매칭 (시골 리 이름: 검단리, 상검단 등)
       const riUnits  = ri.split(/[\/,]/).map(x=>x.trim()).filter(Boolean);
       const banUnits = ban.split(/[\/,]/).map(x=>x.trim()).filter(Boolean);
       if(riUnits.some(x=>x===token) || banUnits.some(x=>x===token)) s += 80000;
       else if(!/^\d/.test(token) && (ri.includes(token) || ban.includes(token))) s += 8000;
 
-      // 번지 매칭: 하이픈 포함 패턴(952-22)은 정확매칭 우선, 단순 숫자는 부분매칭
       if(/\d/.test(token)){
         if(bunji.includes(token)) s += 60000;
         else if(excl.includes(token)) s += 15000;
         else nums.forEach(n=>{ if(fullAddr.includes(n)) s += 2000; });
       }
 
-      // 추첨학교 매핑
       if(mid.includes('추첨') && [...STATE.추첨학교Map.entries()].some(([full,short])=>
         token.includes(full.replace(/\s/g,'').toLowerCase()) ||
         (short && token.includes(short.replace(/\s/g,'').toLowerCase()))
@@ -697,22 +664,22 @@ function performSearch(q){
 function renderResults(results){
   const resultDiv = document.getElementById('results');
   const summaryDiv = document.getElementById('resultSummary');
-  resultDiv.innerHTML = '';
+  resultDiv.replaceChildren();
 
   if(!results.length){
-    summaryDiv.innerHTML = '';
+    summaryDiv.textContent = '';
     const pool = [...STATE.AC.초등, ...STATE.AC.동리, ...STATE.AC.아파트, ...STATE.AC.중등];
     const lastTok = STATE.lastTokens[STATE.lastTokens.length-1] || '';
     const sug = pool.map(x=>({x, s:scoreMatch(lastTok,x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(o=>o.x);
     let sugHtml = '';
     if(sug.length){
-      sugHtml = `<div class="fuzzy-sug">이런 건 어떠세요? ${sug.map(s=>`<a data-sug="${esc(s)}" onclick="pickSug(this.dataset.sug)">${esc(s)}</a>`).join('')}</div>`;
+      sugHtml = '<div class="fuzzy-sug">이런 건 어떠세요? ' + sug.map(s=>'<a data-sug="' + esc(s) + '" onclick="pickSug(this.dataset.sug)">' + esc(s) + '</a>').join('') + '</div>';
     }
-    resultDiv.innerHTML = `<div class="empty"><div class="empty-title">검색 결과가 없습니다</div><div>다른 키워드로 검색해 주세요</div>${sugHtml}</div>`;
+    resultDiv.innerHTML = '<div class="empty"><div class="empty-title">검색 결과가 없습니다</div><div>다른 키워드로 검색해 주세요</div>' + sugHtml + '</div>';
     return;
   }
 
-  summaryDiv.textContent = `${results.length}건의 결과가 있습니다.`;
+  summaryDiv.textContent = results.length + '건의 결과가 있습니다.';
   summaryDiv.style.fontWeight = 'bold';
 
   let html = '';
@@ -726,9 +693,9 @@ function renderCard(r){
   const mid  = getField(r,['중학구','중학교']) || '';
   const isChu = mid.includes('추첨');
   const midLabel = isChu
-    ? `${hl('충주시학교군')}<span class="s-sub">(추첨배정)</span>`
+    ? hl('충주시학교군') + '<span class="s-sub">(추첨배정)</span>'
     : hl(mid.replace(/중학구$/,'중학교'));
-  const midSub = isChu ? `<div class="mid-target">대상: ${hl(STATE.dynamicMiddleList)}</div>` : '';
+  const midSub = isChu ? '<div class="mid-target">대상: ' + hl(STATE.dynamicMiddleList) + '</div>' : '';
 
   const mJoint = getField(r,['중학교 공동학구','중 공동학구']);
   const mWay   = getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']);
@@ -736,18 +703,11 @@ function renderCard(r){
   const addrBlocks = renderAddrBlock(r);
 
   const midTags = [];
-  if(mJoint) midTags.push(`<span class="tag tag-mjoint">🚌 중등 공동학구: ${hl(mJoint)}</span>`);
-  if(mWay)   midTags.push(`<span class="tag tag-mway">🌳 중등 공동(일방)학구: ${hl(mWay)}</span>`);
-  const midTagRow = midTags.length ? `<div class="mid-tags-row">${midTags.join('')}</div>` : '';
+  if(mJoint) midTags.push('<span class="tag tag-mjoint">🚌 중등 공동학구: ' + hl(mJoint) + '</span>');
+  if(mWay)   midTags.push('<span class="tag tag-mway">🌳 중등 공동(일방)학구: ' + hl(mWay) + '</span>');
+  const midTagRow = midTags.length ? '<div class="mid-tags-row">' + midTags.join('') + '</div>' : '';
 
-  return `<div class="result-card">
-    <div class="card-top">
-      <div class="school-box elem"><span class="s-label">🏫 초등학교</span><span class="s-name">${hl(elem)}</span></div>
-      <div class="school-box mid-box"><span class="s-label">🎓 중학교 / 중학구</span><span class="s-name">${midLabel}</span>${midSub}</div>
-    </div>
-    ${addrBlocks}
-    ${midTagRow}
-  </div>`;
+  return '<div class="result-card"><div class="card-top"><div class="school-box elem"><span class="s-label">🏫 초등학교</span><span class="s-name">' + hl(elem) + '</span></div><div class="school-box mid-box"><span class="s-label">🎓 중학교 / 중학구</span><span class="s-name">' + midLabel + '</span>' + midSub + '</div></div>' + addrBlocks + midTagRow + '</div>';
 }
 function renderAddrBlock(r){
   const dong  = getField(r,['법정동(읍∙면)','법정동','읍면']);
@@ -763,20 +723,20 @@ function renderAddrBlock(r){
 
   const addrText = [dong,ri,ban,bunji].filter(Boolean).map(s=>hl(s)).join(' ');
   const addrLine = addrText
-    ? `<div class="addr-row"><div class="addr-icon">${HOME_SVG}</div><span>${addrText}</span></div>`
+    ? '<div class="addr-row"><div class="addr-icon">' + HOME_SVG + '</div><span>' + addrText + '</span></div>'
     : '';
 
   const tags = [];
-  if(apt)    tags.push(`<span class="tag tag-apt">🏢 ${hl(apt)}</span>`);
-  if(eJoint) tags.push(`<span class="tag tag-ejoint">🚌 공동학구: ${hl(eJoint)}</span>`);
-  if(eWay)   tags.push(`<span class="tag tag-eway">🌳 공동(일방)학구: ${hl(eWay)}</span>`);
-  if(excl)   tags.push(`<span class="tag tag-excl">🚫 제외 구역: ${hl(excl)}</span>`);
-  if(note)   tags.push(`<span class="tag tag-note">📝 참고: ${hl(note)}</span>`);
-  if(center) tags.push(`<span class="tag tag-center">🏠 행정복지센터: ${hl(center)}</span>`);
-  const tagRow = tags.length ? `<div class="tags-row">${tags.join('')}</div>` : '';
+  if(apt)    tags.push('<span class="tag tag-apt">🏢 ' + hl(apt) + '</span>');
+  if(eJoint) tags.push('<span class="tag tag-ejoint">🚌 공동학구: ' + hl(eJoint) + '</span>');
+  if(eWay)   tags.push('<span class="tag tag-eway">🌳 공동(일방)학구: ' + hl(eWay) + '</span>');
+  if(excl)   tags.push('<span class="tag tag-excl">🚫 제외 구역: ' + hl(excl) + '</span>');
+  if(note)   tags.push('<span class="tag tag-note">📝 참고: ' + hl(note) + '</span>');
+  if(center) tags.push('<span class="tag tag-center">🏠 행정복지센터: ' + hl(center) + '</span>');
+  const tagRow = tags.length ? '<div class="tags-row">' + tags.join('') + '</div>' : '';
 
   if(!addrLine && !tagRow) return '';
-  return `<div class="addr-block">${addrLine}${tagRow}</div>`;
+  return '<div class="addr-block">' + addrLine + tagRow + '</div>';
 }
 function pickSug(s){
   const input = document.getElementById('searchInput');
@@ -784,89 +744,78 @@ function pickSug(s){
   performSearch(s);
 }
 
-/* 검색창 이벤트 */
-document.addEventListener('DOMContentLoaded', function () {
-  const searchInput = document.getElementById('searchInput');
-  const clearBtn = document.getElementById('clearBtn');
-  const acDropdown = document.getElementById('acDropdown');
-  const fileInput = document.getElementById('fileInput');
-  const searchWrap = document.getElementById('searchWrap');
+/* 검색창 이벤트 (중복 제거 후 단일 적용) */
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
+const acDropdown = document.getElementById('acDropdown');
 
-  if (searchInput && clearBtn && acDropdown) {
-    searchInput.addEventListener('input', function(){
-      const q = this.value.trim();
-      clearBtn.style.display = q ? 'block' : 'none';
-      if(q.length < 1){ hideAC(); clearResults(); return; }
-      showAC();
-      if(q.length >= 2) performSearch(q);
-      else clearResults();
-    });
+searchInput.addEventListener('input', function(){
+  const q = this.value.trim();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if(q.length < 1){ hideAC(); clearResults(); return; }
+  showAC();
+  if(q.length >= 2) performSearch(q);
+  else clearResults();
+});
 
-    searchInput.addEventListener('keydown', function(e){
-      const open = acDropdown && acDropdown.style.display === 'block';
-      const items = acDropdown ? acDropdown.querySelectorAll('.ac-item') : [];
-      if(e.key === 'ArrowDown' && open){
-        e.preventDefault();
-        STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
-        updateFocus();
-      } else if(e.key === 'ArrowUp' && open){
-        e.preventDefault();
-        STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
-        updateFocus();
-      } else if(e.key === 'Enter'){
-        e.preventDefault();
-        if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
-        else { hideAC(); performSearch(searchInput.value); }
-      } else if(e.key === 'Escape'){
-        hideAC();
-      }
-    });
+searchInput.addEventListener('keydown', function(e){
+  const open = acDropdown.style.display === 'block';
+  const items = acDropdown.querySelectorAll('.ac-item');
+  if(e.key === 'ArrowDown' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
+    updateFocus();
+  } else if(e.key === 'ArrowUp' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
+    updateFocus();
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
+    else { hideAC(); performSearch(searchInput.value); }
+  } else if(e.key === 'Escape'){
+    hideAC();
   }
+});
 
-  if (searchWrap) {
-    document.addEventListener('click', function(e){
-      if(!searchWrap.contains(e.target)) hideAC();
-    });
-  }
+document.addEventListener('click', function(e){
+  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
 
-  if (fileInput) {
-    fileInput.addEventListener('change', function(e) {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-      const yearEl = document.getElementById('adminYearSelect');
-      const year = yearEl ? yearEl.value : '';
-      const reader = new FileReader();
+  const year = document.getElementById('adminYearSelect').value;
+  const reader = new FileReader();
 
-      reader.onload = function(ev) {
-        const buffer = ev.target.result;
-        let text = new TextDecoder('utf-8').decode(buffer);
+  reader.onload = function(ev) {
+    const buffer = ev.target.result;
+    let text = new TextDecoder('utf-8').decode(buffer);
 
-        if (text.includes('\uFFFD')) {
-          try { text = new TextDecoder('euc-kr').decode(buffer); } catch (err) {}
-        }
+    if (text.includes('\uFFFD')) {
+      try {
+        text = new TextDecoder('euc-kr').decode(buffer);
+      } catch (err) {}
+    }
 
-        const data = parseCSV(text);
-        if (data && data.length > 0 && year) {
-          processParsedData(data, year);
-        } else {
-          setAdminStatus('파일 형식이 올바르지 않거나 데이터가 없습니다.', false);
-        }
+    const data = parseCSV(text);
 
-        e.target.value = '';
-      };
+    if (data && data.length > 0) {
+      processParsedData(data, year);
+    } else {
+      setAdminStatus('파일 형식이 올바르지 않거나 데이터가 없습니다.', false);
+    }
 
-      reader.onerror = function() {
-        setAdminStatus('파일을 읽는 중 오류가 발생했습니다.', false);
-        e.target.value = '';
-      };
+    e.target.value = '';
+  };
 
-      reader.readAsArrayBuffer(file);
-    });
-  }
+  reader.onerror = function() {
+    setAdminStatus('파일을 읽는 중 오류가 발생했습니다.', false);
+    e.target.value = '';
+  };
 
-  // 상태 UI 갱신은 초기화 시 한 번 실행
-  updateStatusUI();
+  reader.readAsArrayBuffer(file);
 });
 </script>
 </body>
