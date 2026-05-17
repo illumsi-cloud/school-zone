@@ -127,7 +127,6 @@ mark.hit{
 .ac-item:hover,.ac-item.focused{background:#e8f0fe;color:#0046a0}
 .ac-item .icon{font-size:16px;flex-shrink:0}
 .ac-item mark,
-mark.hit{
   background: rgba(255, 246, 143, 0.62);
   color: inherit;
   font-weight: 700;
@@ -179,7 +178,7 @@ mark.hit{
 
 .mid-tags-row{padding:8px 14px;border-top:1px solid #f0f4f8;display:flex;flex-wrap:wrap;gap:5px;background:#fafcff}
 
-mark.hit{
+.ac-item mark{
   background: rgba(255, 246, 143, 0.62);
   color: inherit;
   font-weight: 700;
@@ -214,6 +213,9 @@ mark.hit{
     .notice-line{font-size:13px;line-height:1.5}
     .notice-divider{margin:10px 0}
     .legend-badge{font-size:10px;padding:2px 7px}
+    .ac-dropdown{max-height:260px}
+    .ac-group-label{padding:6px 12px 3px;font-size:11px}
+    .ac-item{padding:12px 12px;font-size:14px}
   }
 </style>
 </head>
@@ -540,58 +542,96 @@ function getLastToken(s){
   const toks = s.trim().split(/\s+/);
   return toks[toks.length-1] || '';
 }
+
 function showAC(){
   const input = document.getElementById('searchInput');
-  const val = input.value;
-  const toks = val.trim().split(/\\s+/).filter(Boolean);
+  const val = input.value.trim();
+  const toks = val.split(/\s+/).filter(Boolean);
   const tok = getLastToken(val);
   const box = document.getElementById('acDropdown');
 
-  if(!tok || tok.length < 1){ hideAC(); return; }
+  if(!tok){ hideAC(); return; }
 
+  const q = tok.toLowerCase();
   const qlen = toks.length;
 
-  const groups = [
-    {key:'아파트', label:'🏫 초등학교', icon:'🏫', items:STATE.AC.초등},
-    {key:'중등',  label:'🎓 중학교·중학구', icon:'🎓', items:[...new Set([...STATE.AC.중등, ...STATE.AC.추첨약칭])]},
-    {key:'동리',  label:'🏘 동·리·통', icon:'📍', items:STATE.AC.동리},
-    {key:'아파트', label:'🏢 공동주택', icon:'🏢', items:STATE.AC.아파트}
+  const pool = [
+    ...STATE.AC.초등.map(x => ({x, g:'초등'})),
+    ...STATE.AC.중등.map(x => ({x, g:'중등'})),
+    ...STATE.AC.추첨약칭.map(x => ({x, g:'중등'})),
+    ...STATE.AC.동리.map(x => ({x, g:'동리'})),
+    ...STATE.AC.아파트.map(x => ({x, g:'아파트'}))
   ];
 
-function rankItem(x){
-    const s = scoreMatch(tok, x);
+  function catRank(g){
     if(qlen <= 2){
-      if(STATE.AC.초등.includes(x)) return s + 300000;
-      if(STATE.AC.중등.includes(x) || STATE.AC.추첨약칭.includes(x)) return s + 200000;
-      if(STATE.AC.동리.includes(x)) return s + 100000;
-      if(STATE.AC.아파트.includes(x)) return s + 50000;
+      if(g === '초등') return 400000;
+      if(g === '중등') return 300000;
+      if(g === '동리') return 200000;
+      if(g === '아파트') return 100000;
     }
-    return s;
+    return 0;
   }
 
+  function itemRank(x, g){
+    const s = String(x);
+    const sl = s.toLowerCase();
+
+    let rank = catRank(g);
+
+    if(sl === q) rank += 1000000;
+    else if(sl.startsWith(q)) rank += 500000;
+    else if(sl.includes(q)) rank += 100000;
+    else {
+      const d = lev(q, sl);
+      if(d <= 1 && Math.abs(q.length - sl.length) <= 1) rank += 5000;
+      else rank = -1;
+    }
+
+    return rank;
+  }
+
+  const scored = pool
+    .map(o => ({...o, s: itemRank(o.x, o.g)}))
+    .filter(o => o.s >= 0)
+    .sort((a,b) => b.s - a.s || a.x.localeCompare(b.x, 'ko'));
+
+  const seen = new Set();
+  const uniq = [];
+  for(const o of scored){
+    if(seen.has(o.x)) continue;
+    seen.add(o.x);
+    uniq.push(o);
+  }
+
+  const top = uniq.slice(0, 8);
+  if(!top.length){ hideAC(); return; }
+
+  const labels = {
+    초등: '🏫 초등학교',
+    중등: '🎓 중학교·중학구',
+    동리: '🏘 동·리·통',
+    아파트: '🏢 공동주택'
+  };
+
+  const order = ['초등', '중등', '동리', '아파트'];
   let html = '';
   const all = [];
 
-  for(const g of groups){
-    const scored = g.items
-      .map(x=>({x, s:rankItem(x)}))
-      .filter(o=>o.s>0)
-      .sort((a,b)=>b.s-a.s)
-      .slice(0,8);
+  for(const g of order){
+    const items = top.filter(o => o.g === g);
+    if(!items.length) continue;
 
-    if(scored.length){
-      html += '<div class="ac-group-label">' + g.label + '</div>';
-      for(const o of scored){
-        const idx = all.length;
-        all.push(o.x);
-        const re = new RegExp(reEsc(tok),'gi');
-        const disp = esc(o.x).replace(re, m=>'<mark>' + m + '</mark>');
-        html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span class="icon">↳</span><span>' + disp + '</span></div>';
-      }
+    html += '<div class="ac-group-label">' + labels[g] + '</div>';
+    for(const o of items){
+      const idx = all.length;
+      all.push(o.x);
+      const re = new RegExp(reEsc(tok), 'gi');
+      const disp = esc(o.x).replace(re, m => '<mark>' + m + '</mark>');
+      html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span>' + disp + '</span></div>';
     }
   }
 
-  if(!all.length){ hideAC(); return; }
   box.innerHTML = html;
   box.style.display = 'block';
   box._all = all;
@@ -599,6 +639,7 @@ function rankItem(x){
   STATE.acFocusIdx = -1;
   updateFocus();
 }
+
 function updateFocus(){
   const box = document.getElementById('acDropdown');
   const items = box.querySelectorAll('.ac-item');
