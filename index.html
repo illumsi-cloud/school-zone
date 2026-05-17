@@ -543,22 +543,42 @@ function getLastToken(s){
 function showAC(){
   const input = document.getElementById('searchInput');
   const val = input.value;
+  const toks = val.trim().split(/\\s+/).filter(Boolean);
   const tok = getLastToken(val);
   const box = document.getElementById('acDropdown');
 
   if(!tok || tok.length < 1){ hideAC(); return; }
 
+  const qlen = toks.length;
+
   const groups = [
-    {key:'아파트', label:'🏢 공동주택', icon:'🏢', items:STATE.AC.아파트},
+    {key:'아파트', label:'🏫 초등학교', icon:'🏫', items:STATE.AC.초등},
+    {key:'중등',  label:'🎓 중학교·중학구', icon:'🎓', items:[...new Set([...STATE.AC.중등, ...STATE.AC.추첨약칭])]},
     {key:'동리',  label:'🏘 동·리·통', icon:'📍', items:STATE.AC.동리},
-    {key:'초등',  label:'🏫 초등학교', icon:'🏫', items:STATE.AC.초등},
-    {key:'중등',  label:'🎓 중학교·중학구', icon:'🎓', items:[...new Set([...STATE.AC.중등, ...STATE.AC.추첨약칭])]}
+    {key:'아파트', label:'🏢 공동주택', icon:'🏢', items:STATE.AC.아파트}
   ];
+
+function rankItem(x){
+    const s = scoreMatch(tok, x);
+    if(qlen <= 2){
+      if(STATE.AC.초등.includes(x)) return s + 300000;
+      if(STATE.AC.중등.includes(x) || STATE.AC.추첨약칭.includes(x)) return s + 200000;
+      if(STATE.AC.동리.includes(x)) return s + 100000;
+      if(STATE.AC.아파트.includes(x)) return s + 50000;
+    }
+    return s;
+  }
 
   let html = '';
   const all = [];
+
   for(const g of groups){
-    const scored = g.items.map(x=>({x, s:scoreMatch(tok, x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,8);
+    const scored = g.items
+      .map(x=>({x, s:rankItem(x)}))
+      .filter(o=>o.s>0)
+      .sort((a,b)=>b.s-a.s)
+      .slice(0,8);
+
     if(scored.length){
       html += '<div class="ac-group-label">' + g.label + '</div>';
       for(const o of scored){
@@ -566,10 +586,11 @@ function showAC(){
         all.push(o.x);
         const re = new RegExp(reEsc(tok),'gi');
         const disp = esc(o.x).replace(re, m=>'<mark>' + m + '</mark>');
-        html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span class="icon">' + g.icon + '</span><span>' + disp + '</span></div>';
+        html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span class="icon">↳</span><span>' + disp + '</span></div>';
       }
     }
   }
+
   if(!all.length){ hideAC(); return; }
   box.innerHTML = html;
   box.style.display = 'block';
