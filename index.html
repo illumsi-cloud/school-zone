@@ -526,116 +526,99 @@ function buildAC(){
 }
 
 /* 자동완성 UI */
-function scoreMatch(term, item){
-  const t = term.toLowerCase(), it = item.toLowerCase();
-  if(!t) return 0;
-  if(it === t) return 100000;
-  if(it.startsWith(t)) return 50000 - it.length;
-  if(it.includes(t)) return 10000 - it.length;
-  if(t.length >= 2){
-    const d = lev(t, it);
-    if(d <= 1 && Math.abs(t.length - it.length) <= 1) return 1000 - d*100 - it.length;
+function scoreMatch(term, item) {
+  const t = term.toLowerCase().trim();
+  const i = item.toLowerCase().trim();
+
+  if (!t) return 0;
+
+  // 1. 일치 점수 산정
+  if (i === t) return 1000000;
+  if (i.startsWith(t)) return 500000;
+  if (i.includes(t)) return 100000;
+
+  // 2. 레벤슈타인 오타 보정 (짧은 단어 남발 방지)
+  if (t.length > 1 && i.length > 1) {
+    const d = lev(t, i);
+    if (d <= 1) return 5000 - d;
   }
+
+  // 3. 과락 처리
   return 0;
 }
+
 function getLastToken(s){
   const toks = s.trim().split(/\s+/);
   return toks[toks.length-1] || '';
 }
 
-function showAC(){
+function showAC() {
   const input = document.getElementById('searchInput');
-  const val = input.value.trim();
-  const toks = val.split(/\s+/).filter(Boolean);
+  const val = input.value;
   const tok = getLastToken(val);
   const box = document.getElementById('acDropdown');
 
-  if(!tok){ hideAC(); return; }
+  if (!tok || tok.length < 1) {
+    hideAC();
+    return;
+  }
 
-  const q = tok.toLowerCase();
-  const qlen = toks.length;
+  const tokLc = tok.toLowerCase().trim();
 
-  const pool = [
-    ...STATE.AC.초등.map(x => ({x, g:'초등'})),
-    ...STATE.AC.중등.map(x => ({x, g:'중등'})),
-    ...STATE.AC.추첨약칭.map(x => ({x, g:'중등'})),
-    ...STATE.AC.동리.map(x => ({x, g:'동리'})),
-    ...STATE.AC.아파트.map(x => ({x, g:'아파트'}))
+  const groups = [
+    { key: 'dong', label: '동/리', icon: '📍', items: STATE.AC.dong, rank: 200000 },
+    { key: 'elem', label: '초등학교', icon: '🏫', items: STATE.AC.elem, rank: 400000 },
+    { key: 'mid', label: '중학교', icon: '🎓', items: STATE.AC.mid, rank: 300000 },
+    { key: 'apt', label: '아파트', icon: '🏢', items: STATE.AC.apt, rank: 100000 }
   ];
 
-  function catRank(g){
-    if(qlen <= 2){
-      if(g === '초등') return 400000;
-      if(g === '중등') return 300000;
-      if(g === '동리') return 200000;
-      if(g === '아파트') return 100000;
-    }
-    return 0;
-  }
-
-  function itemRank(x, g){
-    const s = String(x);
-    const sl = s.toLowerCase();
-
-    let rank = catRank(g);
-
-    if(sl === q) rank += 1000000;
-    else if(sl.startsWith(q)) rank += 500000;
-    else if(sl.includes(q)) rank += 100000;
-    else {
-      const d = lev(q, sl);
-      if(d <= 1 && Math.abs(q.length - sl.length) <= 1) rank += 5000;
-      else rank = -1;
-    }
-
-    return rank;
-  }
-
-  const scored = pool
-    .map(o => ({...o, s: itemRank(o.x, o.g)}))
-    .filter(o => o.s >= 0)
-    .sort((a,b) => b.s - a.s || a.x.localeCompare(b.x, 'ko'));
-
-  const seen = new Set();
-  const uniq = [];
-  for(const o of scored){
-    if(seen.has(o.x)) continue;
-    seen.add(o.x);
-    uniq.push(o);
-  }
-
-  const top = uniq.slice(0, 8);
-  if(!top.length){ hideAC(); return; }
-
-  const labels = {
-    초등: '🏫 초등학교',
-    중등: '🎓 중학교·중학구',
-    동리: '🏘 동·리·통',
-    아파트: '🏢 공동주택'
-  };
-
-  const order = ['초등', '중등', '동리', '아파트'];
   let html = '';
   const all = [];
+  let temp = [];
 
-  for(const g of order){
-    const items = top.filter(o => o.g === g);
-    if(!items.length) continue;
+  for (const g of groups) {
+    const scored = g.items
+      .map(x => {
+        const mScore = scoreMatch(tokLc, x);
+        return { x, g, s: mScore > 0 ? mScore + g.rank : 0 };
+      })
+      .filter(o => o.s > 0);
 
-    html += '<div class="ac-group-label">' + labels[g] + '</div>';
-    for(const o of items){
-      const idx = all.length;
-      all.push(o.x);
-      const re = new RegExp(reEsc(tok), 'gi');
-      const disp = esc(o.x).replace(re, m => '<mark>' + m + '</mark>');
-      html += '<div class="ac-item" role="option" data-idx="' + idx + '" onclick="pickAC(' + idx + ')"><span>' + disp + '</span></div>';
+    temp = temp.concat(scored);
+  }
+
+  if (!temp.length) {
+    hideAC();
+    return;
+  }
+
+  // 전체 점수순 정렬 후 상위 8개만 사용
+  temp.sort((a, b) => b.s - a.s);
+  temp = temp.slice(0, 8);
+
+  // 점수순은 유지하되, 그룹이 바뀌는 지점마다 라벨 재출력
+  let curGrp = '';
+  for (const o of temp) {
+    if (curGrp !== o.g.key) {
+      html += `<div class="ac-group-label">${o.g.label}</div>`;
+      curGrp = o.g.key;
     }
+
+    const idx = all.length;
+    all.push(o.x);
+
+    const re = new RegExp(reEsc(tok), 'gi');
+    const disp = esc(o.x).replace(re, m => `<mark>${m}</mark>`);
+
+    html += `<div class="ac-item" role="option" data-idx="${idx}" onclick="pickAC(${idx})">
+      <span class="icon">${o.g.icon}</span><span>${disp}</span>
+    </div>`;
   }
 
   box.innerHTML = html;
   box.style.display = 'block';
   box._all = all;
-  input.setAttribute('aria-expanded','true');
+  input.setAttribute('aria-expanded', 'true');
   STATE.acFocusIdx = -1;
   updateFocus();
 }
