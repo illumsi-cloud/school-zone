@@ -298,7 +298,6 @@ mark.hit{
       </div>
     </div>
   </div>
-</body>
 
 <script>
 /* 전역 상태 */
@@ -547,12 +546,14 @@ function buildAC(){
   rows.forEach(r=>{
     const dong = getField(r,['법정동(읍∙면)','법정동','읍면']);
     const ri   = getField(r,['법정리(통)','법정리']);
+    const ban  = getField(r,['행정리(반)','행정리']);
     const elem = stripBracket(getField(r,['초등학교명','초등학교']));
     const mid  = stripBracket(getField(r,['중학구','중학교']));
     const apt  = getField(r,['공동주택명','공동주택']);
 
     if(dong) s동리.add(dong);
     if(ri) ri.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s동리.add((dong?dong+' ':'')+t);});
+    if(ban) ban.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s동리.add((dong?dong+' ':'')+t);});
     if(elem) s초.add(elem);
     getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
     getField(r,['초등학교 공동(일방)학구','공동(일방)학구 초등학교','초 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
@@ -635,6 +636,13 @@ function showAC() {
     const x = norm(text);
     if (!q || !x) return 0;
 
+    const unitQ = q.match(/^(\d{1,4})(통|반|리)$/);
+    if (unitQ) {
+      if (x === q) return isFirstToken ? 3000000 : 2000000;
+      if (x.startsWith(q)) return isFirstToken ? 2000000 : 1200000;
+      return 0;
+    }
+
     if (x === q) return isFirstToken ? 2000000 : 1200000;
     if (x.startsWith(q)) return isFirstToken ? 1400000 : 800000;
     if (x.includes(q)) return isFirstToken ? 500000 : 250000;
@@ -645,7 +653,7 @@ function showAC() {
     }
 
     return 0;
-  }
+}
 
   let temp = [];
   const all = [];
