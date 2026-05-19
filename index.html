@@ -930,6 +930,8 @@ function renderCard(r){
   const isChu = mid.includes('추첨');
 
   const drawList = getDrawTargets(r);
+  console.log('mid=', mid, 'raw추첨학교=', getField(r,['추첨학교']), 'drawList=', drawList);
+
   const drawText = drawList.join(', ');
 
   const midLabel = isChu
