@@ -371,14 +371,22 @@ function isAddrNumericToken(token){
 }
 
 function getDrawTargets(row){
-  const list = splitMulti(getField(row,['추첨학교']));
+  const raw = getField(row,['추첨학교']);
+  const list = splitMulti(raw);
   const out = [];
 
   list.forEach(s=>{
-    const { full, short } = parseSchoolName(s);
-    if(full) out.push(full);
-    if(short) out.push(short);
-    if(s) out.push(s);
+    const item = String(s || '').trim();
+    if(!item) return;
+
+    out.push(item); // 원문 그대로: 충주여자중(여중)
+
+    const { full, short } = parseSchoolName(item);
+    if(full) out.push(full);   // 충주여자중
+    if(short) out.push(short); // 여중
+
+    const noParen = item.replace(/\([^)]*\)/g, '').trim();
+    if(noParen) out.push(noParen); // 괄호 제거본 한 번 더
   });
 
   return [...new Set(out)];
