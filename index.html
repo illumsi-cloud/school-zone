@@ -379,14 +379,14 @@ function getDrawTargets(row){
     const item = String(s || '').trim();
     if(!item) return;
 
-    out.push(item); // 원문 그대로: 충주여자중(여중)
+    out.push(item);
 
     const { full, short } = parseSchoolName(item);
-    if(full) out.push(full);   // 충주여자중
-    if(short) out.push(short); // 여중
+    if(full) out.push(full);
+    if(short) out.push(short);
 
     const noParen = item.replace(/\([^)]*\)/g, '').trim();
-    if(noParen) out.push(noParen); // 괄호 제거본 한 번 더
+    if(noParen) out.push(noParen);
   });
 
   return [...new Set(out)];
