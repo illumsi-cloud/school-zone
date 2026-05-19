@@ -565,11 +565,11 @@ function showAC() {
 
   const tokLc = tok.toLowerCase().trim();
 
-  const groups = [
-    { key: 'dong', label: '동/리', icon: '📍', items: STATE.AC.dong, rank: 200000 },
-    { key: 'elem', label: '초등학교', icon: '🏫', items: STATE.AC.elem, rank: 400000 },
-    { key: 'mid', label: '중학교', icon: '🎓', items: STATE.AC.mid, rank: 300000 },
-    { key: 'apt', label: '아파트', icon: '🏢', items: STATE.AC.apt, rank: 100000 }
+const groups = [
+    { key: 'dong', label: '동/리', icon: '📍', items: STATE.AC.동리, rank: 200000 },
+    { key: 'elem', label: '초등학교', icon: '🏫', items: STATE.AC.초등, rank: 400000 },
+    { key: 'mid', label: '중학교', icon: '🎓', items: [...STATE.AC.중등, ...STATE.AC.추첨약칭], rank: 300000 },
+    { key: 'apt', label: '아파트', icon: '🏢', items: STATE.AC.아파트, rank: 100000 }
   ];
 
   let html = '';
@@ -577,6 +577,8 @@ function showAC() {
   let temp = [];
 
   for (const g of groups) {
+    if (!g.items) continue; // 데이터 무결성 방어
+    
     const scored = g.items
       .map(x => {
         const mScore = scoreMatch(tokLc, x);
@@ -593,7 +595,7 @@ function showAC() {
   }
 
   // 전체 점수순 정렬 후 상위 8개만 사용
-  temp.sort((a, b) => b.s - a.s);
+temp.sort((a, b) => b.s - a.s);
   temp = temp.slice(0, 8);
 
   // 점수순은 유지하되, 그룹이 바뀌는 지점마다 라벨 재출력
