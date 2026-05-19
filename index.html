@@ -372,24 +372,9 @@ function isAddrNumericToken(token){
 
 function getDrawTargets(row){
   const raw = getField(row,['추첨학교']);
-  const list = splitMulti(raw);
-  const out = [];
-
-  list.forEach(s=>{
-    const item = String(s || '').trim();
-    if(!item) return;
-
-    out.push(item);
-
-    const { full, short } = parseSchoolName(item);
-    if(full) out.push(full);
-    if(short) out.push(short);
-
-    const noParen = item.replace(/\([^)]*\)/g, '').trim();
-    if(noParen) out.push(noParen);
-  });
-
-  return [...new Set(out)];
+  console.log('추첨학교 raw=', raw);
+  if(!raw) return [];
+  return [raw];
 }
 
 /* 하이라이트 */
