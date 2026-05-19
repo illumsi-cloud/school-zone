@@ -371,14 +371,22 @@ function isAddrNumericToken(token){
 }
 
 function getDrawTargets(row){
-  const list = splitMulti(getField(row,['추첨학교']));
+  const raw = getField(row,['추첨학교']);
+  const list = splitMulti(raw);
   const out = [];
 
   list.forEach(s=>{
-    const { full, short } = parseSchoolName(s);
+    const item = String(s || '').trim();
+    if(!item) return;
+
+    out.push(item);
+
+    const { full, short } = parseSchoolName(item);
     if(full) out.push(full);
     if(short) out.push(short);
-    if(s) out.push(s);
+
+    const noParen = item.replace(/\([^)]*\)/g, '').trim();
+    if(noParen) out.push(noParen);
   });
 
   return [...new Set(out)];
@@ -920,6 +928,9 @@ function renderCard(r){
   const elem = getField(r,['초등학교명','초등학교']) || '(미지정)';
   const mid  = getField(r,['중학구','중학교']) || '';
   const isChu = mid.includes('추첨');
+
+  const drawList = getDrawTargets(r);
+  const drawText = drawList.join(', ');
 
   const midLabel = isChu
     ? hl('충주시학교군') + '<span class="s-sub">(' + hl('추첨배정') + ')</span>'
