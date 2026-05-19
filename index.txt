@@ -569,20 +569,26 @@ function buildAC(){
   STATE.AC.아파트 = [...s아파트].sort();
 
   STATE.추첨학교Map.clear();
-  const chuRows = rows.filter(r => (getField(r,['중학구'])||'').includes('추첨'));
+  const chuRows = rows.filter(r => (getField(r,['중학구']) || '').includes('추첨'));
+
   chuRows.forEach(r=>{
-    (getField(r,['추첨학교'])||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(s=>{
+    splitMulti(getField(r,['추첨학교'])).forEach(s=>{
       const { full, short } = parseSchoolName(s);
-      if(!STATE.추첨학교Map.has(full)) STATE.추첨학교Map.set(full, short);
+      if(full && !STATE.추첨학교Map.has(full)) {
+        STATE.추첨학교Map.set(full, short);
+      }
     });
   });
+
   STATE.AC.추첨약칭 = [];
   const displayArr = [];
+
   STATE.추첨학교Map.forEach((short, full)=>{
     STATE.AC.추첨약칭.push(full);
     if(short) STATE.AC.추첨약칭.push(short);
     displayArr.push(short ? full + '(' + short + ')' : full);
   });
+
   STATE.dynamicMiddleList = displayArr.join(', ');
 }
 
@@ -920,7 +926,7 @@ function renderCard(r){
     : hl(mid.replace(/중학구$/,'중학교'));
 
   const midSub = isChu
-    ? '<div class="mid-target">대상: ' + hl(STATE.dynamicMiddleList) + '</div>'
+    ? '<div class="mid-target">대상: ' + hl(drawText) + '</div>'
     : '';
 
   const mJoint = getField(r,['중학교 공동학구','중 공동학구']);
