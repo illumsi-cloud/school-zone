@@ -933,18 +933,15 @@ function renderCard(r){
   const mid  = getField(r,['중학구','중학교']) || '';
   const isChu = mid.includes('추첨');
 
-  const drawList = getDrawTargets(r);
-  console.log('mid=', mid, 'raw추첨학교=', getField(r,['추첨학교']), 'drawList=', drawList);
-
-  const drawText = drawList.join(', ');
+  const drawRaw = getField(r,['추첨학교']) || '';
 
   const midLabel = isChu
     ? hl('충주시학교군') + '<span class="s-sub">(' + hl('추첨배정') + ')</span>'
     : hl(mid.replace(/중학구$/,'중학교'));
 
-  const midSub = isChu
-    ? '<div class="mid-target">대상: ' + hl(drawText) + '</div>'
-    : '';
+  const midSub = (isChu && drawRaw)
+  ? '<div class="mid-target">대상: ' + hl(drawRaw) + '</div>'
+  : '';
 
   const mJoint = getField(r,['중학교 공동학구','중 공동학구']);
   const mWay   = getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']);
