@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="충주시 초·중학교 통학구역 및 중학구 간편 검색 서비스">
+<meta property="og:title" content="충주시 통학구역 검색 서비스">
+<meta property="og:description" content="동이나 아파트를 입력하여 배정 초등학교와 중학교를 쉽게 확인하세요.">
+<title>충주 초·중학교 통학구역 검색 시스템</title>
+<style>
+/* 기본 레이아웃 */
+*{box-sizing:border-box}
+body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif;padding:0;margin:0;background:#f4f7f9;color:#333;line-height:1.6}
+.container{max-width:880px;margin:40px auto;padding:0 20px}
+
+/* 로딩 화면 */
+#loadingView{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:18px}
+.spinner{width:48px;height:48px;border:5px solid #e0e7ef;border-top-color:#0046a0;border-radius:50%;animation:spin .85s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#4b5563;font-size:15px;font-weight:500}
+
+/* 사용자 화면 */
+#userView{display:none}
+.header-title{text-align:center;color:#0046a0;margin-bottom:20px;font-size:20px;font-weight:700;letter-spacing:-.5px;word-break:keep-all}
+.year-tab{padding:8px 20px;font-size:14px;font-weight:600;border:2px solid #0046a0;background:#fff;color:#0046a0;border-radius:6px;cursor:pointer;transition:all .2s}
+.year-tab.active{
+  background:#0046a0;
+  color:#fff;
+  box-shadow:0 4px 10px rgba(0,70,160,.2);
+}
+.year-note{
+  margin-top:8px;
+  text-align:center;
+  font-size:12px;
+  color:#64748b;
+  line-height:1.4;
+}
+
+#searchArea{display:none}
+#emptyMessage{display:none;text-align:center;padding:32px 20px;font-size:14px;color:#555;background:#fff;border-radius:12px;border:1px solid #ddd}
+
+/* 안내문 */
+.notice-box{background:#fff;border:1px solid #eaeaea;padding:18px;border-radius:10px;font-size:14px;margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,.02)}
+.notice-line{margin-bottom:8px;border-left:3px solid #adc6ff;padding-left:12px}
+.notice-line:last-child{margin-bottom:0;border-left:3px solid #ccc}
+.notice-box a{color:#0046a0;text-decoration:underline;font-weight:bold;cursor:pointer}
+.notice-box a:hover{color:#003380;background:#f0f4f8;border-radius:3px}
+.highlight{background:#ffff00;padding:1px 3px;border-radius:2px;font-weight:bold}
+.notice-wrap{margin:18px 0 20px}
+.notice-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid #d7e1ec;color:#0046a0;
+  border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;
+  cursor:pointer;margin-bottom:10px
+}
+.notice-divider{height:1px;background:#e6ebf2;margin:12px 0}
+.notice-sub{display:block;margin-top:6px;color:#666;font-size:12px;line-height:1.4}
+.legend-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;
+  vertical-align:middle;white-space:nowrap
+}
+.legend-joint{background:#f0f9ff;color:#0f766e}
+.legend-way{background:#ecfdf5;color:#15803d}
+.notice-box a{color:#0b57d0;text-decoration:underline;text-underline-offset:2px}
+.notice-box a:hover{text-decoration-thickness:2px}
+
+/* 검색창 */
+.search-wrap{position:relative;margin-bottom:22px}
+.search-input{
+  width:100%;
+  padding:18px 52px 18px 46px;
+  font-size:16px;
+  border:2px solid transparent;
+  border-radius:10px;
+  outline:none;
+  box-sizing:border-box;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  font-family:inherit;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393c5fd' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.65' y1='16.65' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat 16px center,
+    linear-gradient(#fff,#fff) padding-box,
+    linear-gradient(90deg,#e0f2fe,#60a5fa,#2563eb) border-box;
+  background-size:18px 18px, auto, auto;
+}
+.search-input::placeholder{color:#94a3b8}
+.search-input:focus{box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.search-hint{
+  margin-top:8px;
+  font-size:12.5px;
+  color:#64748b;
+  line-height:1.45;
+  padding-left:4px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+mark.hit{
+  background:linear-gradient(180deg, rgba(168,85,247,.30), rgba(236,72,153,.35));
+  color:#6d28d9;
+  font-weight:700;
+  padding:0 1px;
+  border-radius:2px;
+}
+
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;color:#999;cursor:pointer;display:none;line-height:1}
+
+/* 자동완성 드롭다운 */
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #0046a0;border-radius:10px;box-shadow:0 8px 24px rgba(0,70,160,.13);z-index:100;overflow:hidden;display:none;max-height:340px;overflow-y:auto}
+.ac-group-label{padding:7px 14px 4px;font-size:11.5px;font-weight:bold;color:#888;letter-spacing:.5px;background:#f8f9fa;border-bottom:1px solid #eee}
+.ac-item{padding:11px 16px;cursor:pointer;font-size:15px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #f5f5f5;transition:background .1s}
+.ac-item:hover,.ac-item.focused{background:#e8f0fe;color:#0046a0}
+.ac-item .icon{font-size:16px;flex-shrink:0}
+.ac-item mark{
+  background: rgba(255, 246, 143, 0.62);
+  color: inherit;
+  font-weight: 700;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* 결과 요약 */
+.result-summary{margin-bottom:12px;color:#4b5563;font-size:14px;font-weight:500}
+.result-summary strong{color:#0046a0;font-weight:800}
+
+/* 결과 카드 */
+.result-card{background:#fff;border-radius:8px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e4eaf0;overflow:hidden;animation:fadeUp .18s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card-top{display:flex;min-height:80px}
+.school-box{flex:1;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.school-box.elem{background:#f0fdf4;border-bottom:3px solid #16a34a}
+.school-box.mid-box{background:#eff6ff;border-bottom:3px solid #2563eb;border-left:1px solid #d1e8ff}
+.s-label{font-size:10.5px;font-weight:700;letter-spacing:.5px;margin-bottom:1px}
+.school-box.elem .s-label{color:#15803d}
+.school-box.mid-box .s-label{color:#1d4ed8}
+.s-name{font-size:21px;font-weight:900;line-height:1.15;letter-spacing:-.3px}
+.school-box.elem .s-name{color:#14532d}
+.school-box.mid-box .s-name{color:#1e3a8a}
+.s-sub{font-size:11.5px;font-weight:500;margin-top:1px;color:#3b82f6}
+.mid-target{font-size:11px;color:#64748b;margin-top:4px;line-height:1.4}
+
+/* 주소 블록 + 태그 */
+.addr-block{padding:10px 14px;border-top:1px solid #f0f4f8;background:#fcfdfe}
+.addr-block + .addr-block{border-top:1px dashed #e5e7eb}
+.addr-row{display:flex;align-items:center;gap:9px;background:#f8fafc;border-radius:7px;padding:9px 12px;font-size:14px;color:#374151;margin-bottom:6px}
+.addr-icon{width:24px;height:24px;flex-shrink:0;border-radius:5px;background:#94a3b8;display:flex;align-items:center;justify-content:center}
+.addr-icon svg{width:13px;height:13px;fill:#fff}
+
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;line-height:1.5}
+.tag-apt{
+  background:#f0f9ff;
+  color:#0369a1;
+  border:1px solid #bae6fd;
+}
+.tag-ejoint{background:#f0fdf4;color:#166534;border:1px solid #86efac}
+.tag-eway{background:#dcfce7;color:#15803d;border:1px solid #4ade80}
+.tag-mjoint{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd}
+.tag-mway{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc}
+.tag-excl{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.tag-note{background:#fefce8;color:#854d0e;border:1px solid #fde68a}
+.tag-center{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}
+
+.mid-tags-row{padding:8px 14px;border-top:1px solid #f0f4f8;display:flex;flex-wrap:wrap;gap:5px;background:#fafcff}
+
+/* 빈 결과 */
+.empty{text-align:center;padding:40px 20px;color:#6b7280}
+.empty-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#374151}
+.fuzzy-sug{margin-top:12px;font-size:13px;color:#4b5563}
+.fuzzy-sug a{color:#2563eb;cursor:pointer;text-decoration:underline;margin:0 4px}
+
+/* 푸터 */
+.footer-text{font-size:13px;color:#bbb;text-align:center;margin-top:40px;border-top:1px solid #eee;padding-top:25px;position:relative;min-height:20px}
+.btn-admin-return{position:absolute;right:0;bottom:0;background:none;border:none;color:#ccc;cursor:pointer;text-decoration:underline;font-size:12px}
+
+/* 모바일 반응형 */
+  @media (max-width:600px){
+    /* 전체 여백 축소로 검색창 상단 배치 */
+    .container{margin:15px auto;padding:0 15px}
+    .header-title{font-size:18px;margin-bottom:12px}
+    .year-tab{padding:7px 16px;font-size:13px}
+    .year-note{font-size:11px;margin-top:6px}
+    .search-input{font-size:16px}
+    
+    /* 결과 카드 압축 */
+    .card-top{flex-direction:column}
+    .school-box{padding:12px 14px} /* 박스 내부 여백 축소 */
+    .school-box.mid-box{border-left:none;border-top:1px solid #d1e8ff}
+    .s-name{font-size:17px}
+    
+    /* 주소 및 태그 크기/여백 축소 */
+    .addr-block{padding:8px 12px}
+    .addr-row{padding:7px 10px;font-size:13px;margin-bottom:4px}
+    .mid-tags-row{padding:6px 12px}
+    .tag{padding:2px 7px;font-size:11px}
+    
+    /* 안내문 및 자동완성 */
+    .notice-box{font-size:13px;padding:12px}
+    .notice-wrap{margin:10px 0 14px}
+    .notice-toggle{width:100%;justify-content:center;font-size:14px;padding:9px 12px}
+    .notice-line{font-size:13px;line-height:1.5}
+    .notice-divider{margin:10px 0}
+    .legend-badge{font-size:10px;padding:2px 7px}
+    .ac-dropdown{max-height:260px}
+    .ac-group-label{padding:6px 12px 3px;font-size:11px}
+    .ac-item{padding:12px 12px;font-size:14px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div id="loadingView">
+      <div class="spinner"></div>      
+      <div class="loading-text">통학구역 데이터를 불러오는 중입니다…</div>
+    </div>
+
+    <div id="userView">
+      <h2 class="header-title">충주시 초등학교 통학구역 및 중학구 검색</h2>
+      <div class="year-tabs" id="tabContainer"></div>
+      <div class="year-note">※ 학년도는 3월부터 다음 해 2월까지입니다.</div>
+
+      <div id="emptyMessage"><span id="emptyText"></span></div>
+
+      <div id="searchArea">
+        <div class="notice-wrap">
+          <button type="button" class="notice-toggle" id="noticeToggle" aria-expanded="true" aria-controls="noticeContent">
+              안내문 접기
+          </button>
+
+          <div class="notice-box" id="noticeContent" style="word-break:keep-all;word-wrap:break-word">
+            <div class="notice-line">동·리, 통·반, 아파트명, 학교명으로 배정될 학교를 확인해보세요.</div>
+
+            <!-- 공공기관 링크는 수시 변경 가능하므로 정기 확인 -->
+            <div class="notice-line">
+                - 통·반 정보는 관할 행정복지센터에서 확인해 주세요.
+                <a href="https://www.chungju.go.kr/town/" target="_blank" rel="noopener noreferrer">충주시 통합읍면동 ↗</a>
+            </div>
+
+            <div class="notice-line">
+                - 세부 주소는 도로명주소 안내시스템을 이용해 주세요.
+                <a href="https://www.juso.go.kr/" target="_blank" rel="noopener noreferrer">도로명주소 안내시스템 ↗</a>
+            </div>
+
+            <div class="notice-line">
+                - 이 페이지는 충주교육지원청 학구 변경 고시 자료를 기반으로 합니다. 고시 내용과 다를 경우 
+                <a href="https://www.cbchje.go.kr:447/cbchje/sub.php?menukey=1248" target="_blank" rel="noopener noreferrer">충주교육지원청 ↗</a>에 문의해 주세요.
+            </div>
+
+            <div class="notice-line">
+                - 학구도는 참고용입니다.
+                <a href="https://schoolzone.emac.kr/" target="_blank" rel="noopener noreferrer">학구도안내서비스 ↗</a>
+                <span class="notice-sub">※ 현행 학구 정보가 지도에 늦게 반영될 수 있습니다.</span>
+            </div>
+
+            <div class="notice-divider" aria-hidden="true"></div>
+
+            <div class="notice-line"><strong>범례</strong></div>
+
+            <div class="notice-line">
+                <span class="legend-badge legend-joint">🚌 공동학구</span> 공동학구 내 학교 모두 지원 가능
+            </div>
+
+            <div class="notice-line">
+                <span class="legend-badge legend-way">🌳 공동(일방)학구</span> 지정 큰학교에서 작은학교로만 전입 가능
+            </div>
+        </div>
+      </div>
+
+      <div class="search-wrap" id="searchWrap">
+          <label for="searchInput" class="sr-only">통학구역 검색</label>
+          <input type="text" id="searchInput" class="search-input"
+            placeholder="동·리, 통·반, 아파트, 학교명 입력"
+            autocomplete="off" role="combobox" aria-expanded="false"
+            aria-autocomplete="list" aria-controls="acDropdown">
+          <button class="search-clear" id="clearBtn" onclick="clearSearch()" aria-label="검색어 지우기">&#x232B;</button>
+          <div class="ac-dropdown" id="acDropdown" role="listbox"></div>
+          <div class="search-hint">
+            예: 성서동  만정리  3통 5반  센트럴푸르지오  칠금초<br>
+            ※ 두 단어 이상 입력 시 띄어쓰기로 구분
+          </div>
+        </div>
+
+        <div class="result-summary" id="resultSummary"></div>
+        <div id="results"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* 전역 상태 */
+const STATE = {
+  database: {},
+  currentYear: null,
+  AC: { 동리:[], 초등:[], 중등:[], 아파트:[], 추첨약칭:[] },
+  추첨학교Map: new Map(),
+  dynamicMiddleList: '',
+  acFocusIdx: -1,
+  lastTokens: [],
+  lastHighlightTokens: [],
+  availableYears: []
+};
+const HOME_SVG = '<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
+
+/* 유틸 함수 */
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function reEsc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function stripBracket(s){ return String(s==null?'':s).replace(/\s*\[[^\]]*\]\s*/g,'').trim(); }
+function getField(row, names){
+  if(!row) return '';
+  for(const n of names){
+    if(row[n]!=null && String(row[n]).trim()!=='') return String(row[n]).trim();
+  }
+  const keys = Object.keys(row);
+  for(const n of names){
+    const k = keys.find(k=>k.includes(n));
+    if(k && row[k]!=null && String(row[k]).trim()!=='') return String(row[k]).trim();
+  }
+  return '';
+}
+function parseSchoolName(str){
+  const m = str.match(/^(.+?)\((.+?)\)$/);
+  if(m) return { full:m[1].trim(), short:m[2].trim() };
+  return { full:str.trim(), short:null };
+}
+
+function norm(s){
+  return String(s==null ? '' : s).replace(/\s+/g,'').toLowerCase();
+}
+
+function splitMulti(s){
+  return String(s==null ? '' : s).split(/[\/,]/).map(x=>x.trim()).filter(Boolean);
+}
+
+function schoolForms(token, kind){
+  const t = norm(token);
+  const out = new Set([t]);
+
+  if(kind === '초'){
+    if(t.endsWith('초등학교')) out.add(t.replace(/초등학교$/,'초'));
+    if(t.endsWith('초')) out.add(t.replace(/초$/,'초등학교'));
+  }
+
+  if(kind === '중'){
+    if(t.endsWith('중학교')) out.add(t.replace(/중학교$/,'중'));
+    if(t.endsWith('중학구')) out.add(t.replace(/중학구$/,'중'));
+    if(t.endsWith('중')){
+      out.add(t.replace(/중$/,'중학교'));
+      out.add(t.replace(/중$/,'중학구'));
+    }
+  }
+
+  return [...out].filter(Boolean);
+}
+
+function isAddrNumericToken(token){
+  return /^\d{1,4}(동|통|반|리|번지)?$/.test(norm(token));
+}
+
+function getDrawTargets(row){
+  const raw = getField(row,['추첨학교']);
+  const list = splitMulti(raw);
+  const out = [];
+
+  list.forEach(s=>{
+    const item = String(s || '').trim();
+    if(!item) return;
+
+    out.push(item);
+
+    const { full, short } = parseSchoolName(item);
+    if(full) out.push(full);
+    if(short) out.push(short);
+
+    const noParen = item.replace(/\([^)]*\)/g, '').trim();
+    if(noParen) out.push(noParen);
+  });
+
+  return [...new Set(out)];
+}
+
+/* 하이라이트 */
+function hl(text){
+  const t = String(text==null ? '' : text);
+  if(!t) return '';
+
+  const tokens = (STATE.lastHighlightTokens && STATE.lastHighlightTokens.length
+    ? STATE.lastHighlightTokens
+    : STATE.lastTokens || []
+  ).filter(Boolean);
+
+  if(!tokens.length) return esc(t);
+
+  let out = esc(t);
+
+  [...new Set(tokens)]
+    .sort((a,b)=> b.length - a.length)
+    .forEach(tok=>{
+      const raw = String(tok);
+      if(!raw) return;
+      const re = new RegExp(reEsc(raw), 'gi');
+      out = out.replace(re, m => `<mark class="hit">${m}</mark>`);
+    });
+
+  return out;
+}
+
+/* Levenshtein 거리 (오타 보정) */
+function lev(a,b){
+  const m=a.length,n=b.length;
+  if(!m) return n; if(!n) return m;
+  const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1])+1;
+  }
+  return dp[m][n];
+}
+
+
+/* 1. 자체 내장 CSV 파서 */
+function parseCSV(text) {
+  const result = [];
+  let row = [];
+  let inQuotes = false;
+  let currentValue = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentValue += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentValue);
+      currentValue = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++; 
+      row.push(currentValue);
+      result.push(row);
+      row = [];
+      currentValue = '';
+    } else {
+      currentValue += char;
+    }
+  }
+  if (currentValue !== '' || row.length > 0) {
+    row.push(currentValue);
+    result.push(row);
+  }
+
+  if (result.length < 2) return [];
+  const headers = result[0].map(h => h.trim());
+  const data = [];
+  for (let i = 1; i < result.length; i++) {
+    if (result[i].length === 1 && result[i][0].trim() === '') continue;
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = result[i][j] !== undefined ? result[i][j] : '';
+    }
+    data.push(obj);
+  }
+  return data;
+}
+
+
+/* 2. 서버 업로드 파일 자동 탐지 및 로드 (Fetch API) */
+window.onload = async function() {
+  const loadingView = document.getElementById('loadingView');
+  const thisYear = new Date().getFullYear();
+
+  // 탐색 대상 연도 목록 (-10 ~ +2)
+  const years = [];
+  for (let y = thisYear - 10; y <= thisYear + 2; y++) years.push(y);
+
+  // HEAD 요청 병렬 발송 → 존재하는 연도만 수집
+  const probes = await Promise.all(
+    years.map(y =>
+      fetch(`./${y}.csv`, { method: 'HEAD' })
+        .then(r => r.ok ? y : null)
+        .catch(() => null)
+    )
+  );
+  const foundYears = probes
+    .filter(v => v !== null)
+    .sort((a, b) => a - b);
+
+  // 최신 2개 연도만 선택
+  const yearsToLoad = foundYears.slice(-2);
+
+  // GET 요청·디코딩·파싱 병렬 처리
+  await Promise.all(
+    yearsToLoad.map(async (year) => {
+      try {
+        const response = await fetch(`./${year}.csv`);
+        if (!response.ok) return;
+
+        const buffer = await response.arrayBuffer();
+        let text = new TextDecoder('utf-8').decode(buffer);
+        if (text.includes('\uFFFD')) {
+          try {
+            text = new TextDecoder('euc-kr').decode(buffer);
+          } catch (err) {}
+        }
+        STATE.database[String(year)] = parseCSV(text);
+      } catch (error) {
+        console.error(`${year}.csv 로드 실패:`, error);
+      }
+    })
+  );
+
+  STATE.availableYears = Object.keys(STATE.database).sort();
+
+  loadingView.style.display = 'none';
+  document.getElementById('userView').style.display = 'block';
+
+  const defaultYear = STATE.availableYears.length > 0
+    ? STATE.availableYears[STATE.availableYears.length - 1]
+    : null;
+  switchYear(defaultYear);
+
+  initNoticeToggle();  
+};
+
+/* 사용자 화면 - 연도 탭 */
+function switchYear(year){
+  STATE.currentYear = year;
+  const container = document.getElementById('tabContainer');
+  container.replaceChildren();
+  
+  if (!STATE.availableYears || STATE.availableYears.length === 0) {
+    document.getElementById('searchArea').style.display = 'none';
+    document.getElementById('emptyMessage').style.display = 'block';
+    document.getElementById('emptyText').innerText = '현재 등록된 통학구역 자료가 없습니다.';
+    return;
+  }
+
+  STATE.availableYears.forEach(yearStr => {
+    const btn = document.createElement('button');
+    const isActive = (yearStr === year);
+    btn.className = 'year-tab' + (isActive ? ' active' : '');
+    btn.onclick = () => switchYear(yearStr);
+    btn.innerText = yearStr + '학년도';
+    container.appendChild(btn);
+  });  
+  if(STATE.database[year]){
+    document.getElementById('emptyMessage').style.display = 'none';
+    document.getElementById('searchArea').style.display = 'block';
+    buildAC();
+    clearSearch();
+  } else {
+    document.getElementById('searchArea').style.display = 'none';
+    document.getElementById('emptyMessage').style.display = 'block';
+    document.getElementById('emptyText').innerText = year + '현재 등록된 통학구역 자료가 없습니다.';
+  }
+}
+
+/* 자동완성 데이터 구축 */
+/* 자동완성 데이터 구축 */
+function buildAC(){
+  const rows = STATE.database[STATE.currentYear] || [];
+  const s동리=new Set(), s초=new Set(), s중=new Set(), s아파트=new Set();
+
+  rows.forEach(r=>{
+    const dong = getField(r,['법정동(읍∙면)','법정동','읍면']);
+    const ri   = getField(r,['법정리(통)','법정리']);
+    const ban  = getField(r,['행정리(반)','행정리']);
+    const elem = stripBracket(getField(r,['초등학교명','초등학교']));
+    const mid  = stripBracket(getField(r,['중학구','중학교']));
+    const apt  = getField(r,['공동주택명','공동주택']);
+
+    if(dong) s동리.add(dong);
+    if(ri) ri.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s동리.add((dong?dong+' ':'')+t);});
+    if(ban) ban.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s동리.add((dong?dong+' ':'')+t);});
+    if(elem) s초.add(elem);
+    getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
+    getField(r,['초등학교 공동(일방)학구','공동(일방)학구 초등학교','초 공동(일방)학구']).split(/[\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s초.add(t);});
+    if(mid) mid.split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동학구','중 공동학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']).split(/[\\/,]/).forEach(x=>{const t=stripBracket(x); if(t) s중.add(t);});
+    if(apt) apt.split(/[\/,]/).forEach(x=>{const t=x.trim(); if(t) s아파트.add(t);});
+  });
+
+  STATE.AC.동리 = [...s동리].sort();
+  STATE.AC.초등 = [...s초].sort();
+  STATE.AC.중등 = [...s중].sort();
+  STATE.AC.아파트 = [...s아파트].sort();
+
+  STATE.추첨학교Map.clear();
+  const chuRows = rows.filter(r => (getField(r,['중학구','중학교'])||'').includes('추첨'));
+  chuRows.forEach(r=>{
+    (getField(r,['추첨학교'])||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(s=>{
+      const { full, short } = parseSchoolName(s);
+      if(!STATE.추첨학교Map.has(full)) STATE.추첨학교Map.set(full, short);
+    });
+  });
+  STATE.AC.추첨약칭 = [];
+  const displayArr = [];
+  STATE.추첨학교Map.forEach((short, full)=>{
+    STATE.AC.추첨약칭.push(full);
+    if(short) STATE.AC.추첨약칭.push(short);
+    displayArr.push(short ? full + '(' + short + ')' : full);
+  });
+  STATE.dynamicMiddleList = displayArr.join(', ');
+}
+
+function scoreMatch(term, item) {
+  const t = term.toLowerCase().trim();
+  const i = item.toLowerCase().trim();
+
+  if (!t) return 0;
+
+  // 1. 일치 점수 산정
+  if (i === t) return 1000000;
+  if (i.startsWith(t)) return 500000;
+  if (i.includes(t)) return 100000;
+
+  // 2. 레벤슈타인 오타 보정 (짧은 단어 남발 방지)
+  if (t.length > 1 && i.length > 1) {
+    const d = lev(t, i);
+    if (d <= 1) return 5000 - d;
+  }
+
+  // 3. 과락 처리
+  return 0;
+}
+
+function getLastToken(s){
+  const toks = s.trim().split(/\s+/);
+  return toks[toks.length-1] || '';
+}
+
+/* 자동완성 드롭다운 표출 */
+function showAC() {
+  const input = document.getElementById('searchInput');
+  const val = input.value.trim();
+  const tokens = val.split(/\s+/).filter(Boolean);
+  const box = document.getElementById('acDropdown');
+
+  if (!tokens.length) {
+    hideAC();
+    return;
+  }
+
+  const groups = [
+    { key: 'dong', label: '동/리', icon: '📍', items: STATE.AC.동리, tie: 2 },
+    { key: 'elem', label: '초등학교', icon: '🏫', items: STATE.AC.초등, tie: 4 },
+    { key: 'mid', label: '중학교', icon: '🎓', items: [...STATE.AC.중등, ...STATE.AC.추첨약칭], tie: 3 },
+    { key: 'apt', label: '아파트', icon: '🏢', items: STATE.AC.아파트, tie: 1 }
+  ];
+
+  function tokenScore(queryToken, text, isFirstToken) {
+    const q = norm(queryToken);
+    const x = norm(text);
+    if (!q || !x) return 0;
+
+    if (x === q) return isFirstToken ? 2000000 : 1200000;
+
+    const isExactWord = x.startsWith(q + ' ') || x.endsWith(' ' + q) || x.includes(' ' + q + ' ');
+    if (isExactWord) return isFirstToken ? 1800000 : 1000000;
+
+    if (x.startsWith(q)) return isFirstToken ? 1400000 : 800000;
+    if (x.includes(q)) return isFirstToken ? 500000 : 250000;
+
+    if (q.length > 1 && x.length > 1) {
+      const d = lev(q, x);
+      if (d <= 1) return isFirstToken ? 4000 - d : 1500 - d;
+    }
+    return 0;
+  }
+
+  let temp = [];
+  const all = [];
+  let html = '';
+
+  for (const g of groups) {
+    const scored = (g.items || []).map(x => {
+      let s = 0;
+      if (tokens.length === 1) {
+        s = tokenScore(tokens[0], x, true);
+        if (s <= 0) return null;
+      } else {
+        const first = tokenScore(tokens[0], x, true);
+        if (first <= 0) return null;
+        s += first;
+        for (let i = 1; i < tokens.length; i++) {
+          s += tokenScore(tokens[i], x, false);
+        }
+      }
+      s += g.tie;
+      return { x, g, s };
+    }).filter(Boolean);
+    temp = temp.concat(scored);
+  }
+
+  if (!temp.length) {
+    hideAC();
+    return;
+  }
+
+  temp.sort((a, b) => b.s - a.s);
+  temp = temp.slice(0, 8);
+
+  let curGrp = '';
+  const lastTok = tokens[tokens.length - 1];
+
+  for (const o of temp) {
+    if (curGrp !== o.g.key) {
+      html += `<div class="ac-group-label">${o.g.label}</div>`;
+      curGrp = o.g.key;
+    }
+    const idx = all.length;
+    all.push(o.x);
+    const re = new RegExp(reEsc(lastTok), 'gi');
+    const disp = esc(o.x).replace(re, m => `<mark>${m}</mark>`);
+    html += `<div class="ac-item" role="option" data-idx="${idx}" onclick="pickAC(${idx})">
+      <span class="icon">${o.g.icon}</span><span>${disp}</span>
+    </div>`;
+  }
+
+  box.innerHTML = html;
+  box.style.display = 'block';
+  box._all = all;
+  input.setAttribute('aria-expanded', 'true');
+  STATE.acFocusIdx = -1;
+  updateFocus();
+}
+
+function updateFocus(){
+  const box = document.getElementById('acDropdown');
+  const items = box.querySelectorAll('.ac-item');
+  items.forEach((el,i)=>el.classList.toggle('focused', i === STATE.acFocusIdx));
+  const cur = items[STATE.acFocusIdx];
+  if(cur) cur.scrollIntoView({block:'nearest'});
+}
+
+function pickAC(idx){
+  const box = document.getElementById('acDropdown');
+  const all = box._all || [];
+  if(idx<0 || idx>=all.length) return;
+  const pick = all[idx];
+  const input = document.getElementById('searchInput');
+  const toks = input.value.trim().split(/\s+/);
+  toks[toks.length-1] = pick;
+  input.value = toks.join(' ');
+  hideAC();
+  input.focus();
+  performSearch(input.value);
+}
+
+function hideAC(){
+  const box = document.getElementById('acDropdown');
+  box.style.display = 'none';
+  STATE.acFocusIdx = -1;
+  document.getElementById('searchInput').setAttribute('aria-expanded','false');
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').style.display = 'none';
+  hideAC();
+  clearResults();
+}
+
+function clearResults(){
+  document.getElementById('results').replaceChildren();
+  document.getElementById('resultSummary').textContent = '';
+  STATE.lastTokens = [];
+  STATE.lastHighlightTokens = [];
+}
+
+function initNoticeToggle(){
+  const btn = document.getElementById('noticeToggle');
+  const content = document.getElementById('noticeContent');
+  if(!btn || !content || btn.dataset.bound === '1') return;
+
+  const isMobile = window.innerWidth <= 600;
+  content.hidden = isMobile;
+  btn.textContent = isMobile ? '안내문 펼치기' : '안내문 접기';
+  btn.setAttribute('aria-expanded', String(!isMobile));
+
+  btn.dataset.bound = '1';
+  btn.addEventListener('click', ()=>{
+    const hidden = content.hidden;
+    content.hidden = !hidden;
+    btn.textContent = hidden ? '안내문 접기' : '안내문 펼치기';
+    btn.setAttribute('aria-expanded', String(!hidden));
+  });
+}
+
+/* 검색 연산 */
+function performSearch(q){
+  if(!STATE.database[STATE.currentYear]) return;
+
+  const rows = STATE.database[STATE.currentYear];
+  const tokens = q.trim().split(/\s+/).filter(Boolean);
+
+  STATE.lastTokens = tokens.map(t=>String(t).trim()).filter(Boolean);
+
+  if(!tokens.length){
+    clearResults();
+    return;
+  }
+
+  const scored = rows.map((r, idx)=>{
+    let total = 0;
+    let matchedAll = true;
+    const matchedTokens = []; 
+
+    const sch   = norm(getField(r,['초등학교명','초등학교']));
+    const dong  = norm(getField(r,['법정동(읍∙면)','법정동','읍면']));
+    const mid   = norm(getField(r,['중학구','중학교']));
+    const apt   = norm(getField(r,['공동주택명','공동주택']));
+    const ri    = norm(getField(r,['법정리(통)','법정리']));
+    const ban   = norm(getField(r,['행정리(반)','행정리']));
+    const bunji = norm(getField(r,['구역(번지)','구역']));
+    const excl  = norm(getField(r,['제외 구역(번지)','제외구역(번지)','제외 구역','제외구역']));
+    const fullAddr = norm([
+      getField(r,['법정동(읍∙면)','법정동','읍면']),
+      getField(r,['법정리(통)','법정리']),
+      getField(r,['행정리(반)','행정리']),
+      getField(r,['구역(번지)','구역'])
+    ].join(''));
+
+    const drawTargets = getDrawTargets(r).map(norm);
+    const midTargets = [...new Set([mid, ...drawTargets])];
+
+    tokens.forEach((rawToken, i)=>{
+      const token = norm(rawToken);
+      let tokenScore = 0; 
+      const nums = token.match(/\d+/g) || [];
+      const textOnly = token.replace(/[0-9통반리번지길\s]/g,'');
+
+      let elemScore = 0;
+      schoolForms(token,'초').forEach(cand=>{
+        if(sch === cand) elemScore = Math.max(elemScore, 100000);
+        else if(sch.startsWith(cand)) elemScore = Math.max(elemScore, 50000);
+        else if(cand && sch.includes(cand)) elemScore = Math.max(elemScore, 10000);
+      });
+      tokenScore += elemScore;
+
+      let aptScore = 0;
+      const aptForms = token.endsWith('아파트') ? [token] : [token, token + '아파트'];
+      aptForms.forEach(cand=>{
+        if(apt === cand) aptScore = Math.max(aptScore, 100000);
+        else if(apt.startsWith(cand)) aptScore = Math.max(aptScore, 50000);
+        else if(cand && apt.includes(cand)) aptScore = Math.max(aptScore, 10000);
+      });
+      tokenScore += aptScore;
+
+      let midScore = 0;
+      schoolForms(token,'중').forEach(cand=>{
+        midTargets.forEach(target=>{
+          if(target === cand) midScore = Math.max(midScore, 100000);
+          else if(target.startsWith(cand)) midScore = Math.max(midScore, 50000);
+          else if(cand && target.includes(cand)) midScore = Math.max(midScore, 10000);
+        });
+      });
+      if(mid.includes('추첨') && token === '추첨') {
+        midScore = Math.max(midScore, 25000);
+      }
+      tokenScore += midScore;
+
+      let dongScore = 0;
+      if(dong === token || dong === token+'동' || dong === token+'리') dongScore = Math.max(dongScore, 100000);
+      else if(dong.startsWith(token)) dongScore = Math.max(dongScore, 50000);
+      else if(textOnly && dong.includes(textOnly)) dongScore = Math.max(dongScore, 5000);
+      tokenScore += dongScore;
+
+      let riBanScore = 0;
+      const riUnits  = splitMulti(getField(r,['법정리(통)','법정리'])).map(norm);
+      const banUnits = splitMulti(getField(r,['행정리(반)','행정리'])).map(norm);
+
+      if(riUnits.some(x=>x===token) || banUnits.some(x=>x===token)) riBanScore = Math.max(riBanScore, 80000);
+      else if(!/^\d/.test(token) && (ri.includes(token) || ban.includes(token))) riBanScore = Math.max(riBanScore, 8000);
+      tokenScore += riBanScore;
+
+      let numScore = 0;
+      if(/\d/.test(token)){
+        if(bunji.includes(token)) numScore = Math.max(numScore, 60000);
+        else if(excl.includes(token)) numScore = Math.max(numScore, 15000);
+        else if(isAddrNumericToken(token)) {
+          nums.forEach(n=>{
+            if(fullAddr.includes(n)) numScore += 2000;
+          });
+        }
+      }
+      tokenScore += numScore;
+
+      if(i === 0 && tokenScore > 0) tokenScore += 1200;
+
+      if(tokenScore === 0) {
+        matchedAll = false;
+      } else {
+        total += tokenScore;
+        if (!matchedTokens.includes(rawToken)) matchedTokens.push(rawToken);
+      }
+    });
+
+    return (matchedAll && total > 0) ? { row:r, score:total, idx, matchedTokens } : null;
+  }).filter(Boolean).sort((a,b)=>{
+    if(b.score !== a.score) return b.score - a.score;
+    return a.idx - b.idx;
+  });
+
+  renderResults(scored);
+}
+
+/* 결과 렌더링 */
+function renderResults(scoredResults){
+  const resultDiv = document.getElementById('results');
+  const summaryDiv = document.getElementById('resultSummary');
+  resultDiv.replaceChildren();
+
+  if(!scoredResults || scoredResults.length === 0){
+    summaryDiv.textContent = '';
+    const pool = [...STATE.AC.초등, ...STATE.AC.동리, ...STATE.AC.아파트, ...STATE.AC.중등];
+    const lastTok = STATE.lastTokens[STATE.lastTokens.length-1] || '';
+    const sug = pool.map(x=>({x, s:scoreMatch(lastTok,x)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(o=>o.x);
+    let sugHtml = '';
+    if(sug.length){
+      sugHtml = '<div class="fuzzy-sug">이런 건 어떠세요? ' + sug.map(s=>'<a data-sug="' + esc(s) + '" onclick="pickSug(this.dataset.sug)">' + esc(s) + '</a>').join('') + '</div>';
+    }
+    resultDiv.innerHTML = '<div class="empty"><div class="empty-title">검색 결과가 없습니다</div><div>다른 키워드로 검색해 주세요</div>' + sugHtml + '</div>';
+    return;
+  }
+
+  summaryDiv.textContent = scoredResults.length > 500
+    ? scoredResults.length + '건 중 500건만 표시됩니다. 검색어를 더 구체적으로 입력해 주세요.'
+    : scoredResults.length + '건의 결과가 있습니다.';
+  summaryDiv.style.fontWeight = 'bold';
+
+  let html = '';
+  for(const item of scoredResults.slice(0, 500)){
+    STATE.lastHighlightTokens = item.matchedTokens || [];
+    html += renderCard(item.row);
+  }
+  resultDiv.innerHTML = html;
+}
+
+function renderCard(r){
+  const elem = getField(r,['초등학교명','초등학교']) || '(미지정)';
+  const mid  = getField(r,['중학구','중학교']) || '';
+  const isChu = mid.includes('추첨');
+
+  const drawRaw = getField(r,['추첨학교']) || '';
+
+  const midLabel = isChu
+    ? hl('충주시학교군') + '<span class="s-sub">(' + hl('추첨배정') + ')</span>'
+    : hl(mid.replace(/중학구$/,'중학교'));
+
+  const midSub = (isChu && drawRaw)
+  ? '<div class="mid-target">대상: ' + hl(drawRaw) + '</div>'
+  : '';
+
+  const mJoint = getField(r,['중학교 공동학구','중 공동학구']);
+  const mWay   = getField(r,['중학교 공동(일방)학구','중학교 공동일방학구','중 공동일방학구']);
+  const addrBlocks = renderAddrBlock(r);
+
+  const midTags = [];
+  if(mJoint) midTags.push('<span class="tag tag-mjoint">🚌 중등 공동학구: ' + hl(mJoint) + '</span>');
+  if(mWay)   midTags.push('<span class="tag tag-mway">🌳 중등 공동(일방)학구: ' + hl(mWay) + '</span>');
+  const midTagRow = midTags.length ? '<div class="mid-tags-row">' + midTags.join('') + '</div>' : '';
+
+  return '<div class="result-card"><div class="card-top"><div class="school-box elem"><span class="s-label">🏫 초등학교</span><span class="s-name">' + hl(elem) + '</span></div><div class="school-box mid-box"><span class="s-label">🎓 중학교 / 중학구</span><span class="s-name">' + midLabel + '</span>' + midSub + '</div></div>' + addrBlocks + midTagRow + '</div>';
+}
+
+function renderAddrBlock(r){
+  const dong  = getField(r,['법정동(읍∙면)','법정동','읍면']);
+  const ri    = getField(r,['법정리(통)','법정리']);
+  const ban   = getField(r,['행정리(반)','행정리']);
+  const bunji = getField(r,['구역(번지)','구역']);
+  const apt   = getField(r,['공동주택명','공동주택']);
+  const eJoint= getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']);
+  const eWay  = getField(r,['공동(일방)학구 초등학교','초등학교 공동(일방)학구','초 공동(일방)학구']);
+  const excl  = getField(r,['제외 구역(번지)','제외구역(번지)','제외 구역','제외구역']);
+  const note  = getField(r,['참고']);
+  const center= getField(r,['행정복지센터']);
+
+  const addrText = [dong,ri,ban,bunji].filter(Boolean).map(s=>hl(s)).join(' ');
+  const addrLine = addrText
+    ? '<div class="addr-row"><div class="addr-icon">' + HOME_SVG + '</div><span>' + addrText + '</span></div>'
+    : '';
+
+  const tags = [];
+  if(apt)    tags.push('<span class="tag tag-apt">🏢 ' + hl(apt) + '</span>');
+  if(eJoint) tags.push('<span class="tag tag-ejoint">🚌 공동학구: ' + hl(eJoint) + '</span>');
+  if(eWay)   tags.push('<span class="tag tag-eway">🌳 공동(일방)학구: ' + hl(eWay) + '</span>');
+  if(excl)   tags.push('<span class="tag tag-excl">🚫 제외 구역: ' + hl(excl) + '</span>');
+  if(note)   tags.push('<span class="tag tag-note">📝 참고: ' + hl(note) + '</span>');
+  if(center) tags.push('<span class="tag tag-center">🏛 행정복지센터: ' + hl(center) + '</span>');
+  const tagRow = tags.length ? '<div class="tags-row">' + tags.join('') + '</div>' : '';
+
+  if(!addrLine && !tagRow) return '';
+  return '<div class="addr-block">' + addrLine + tagRow + '</div>';
+}
+function pickSug(s){
+  const input = document.getElementById('searchInput');
+  input.value = s;
+  performSearch(s);
+}
+
+/* 검색창 이벤트 (중복 제거 후 단일 적용) */
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
+const acDropdown = document.getElementById('acDropdown');
+
+searchInput.addEventListener('input', function(){
+  const q = this.value.trim();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if(q.length < 1){ hideAC(); clearResults(); return; }
+  showAC();
+  if(q.length >= 2) performSearch(q);
+  else clearResults();
+});
+
+searchInput.addEventListener('keydown', function(e){
+  const open = acDropdown.style.display === 'block';
+  const items = acDropdown.querySelectorAll('.ac-item');
+  if(e.key === 'ArrowDown' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.min(STATE.acFocusIdx+1, items.length-1);
+    updateFocus();
+  } else if(e.key === 'ArrowUp' && open){
+    e.preventDefault();
+    STATE.acFocusIdx = Math.max(STATE.acFocusIdx-1, -1);
+    updateFocus();
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(open && STATE.acFocusIdx >= 0) pickAC(STATE.acFocusIdx);
+    else { hideAC(); performSearch(searchInput.value); }
+  } else if(e.key === 'Escape'){
+    hideAC();
+  }
+});
+
+document.addEventListener('click', function(e){
+  if(!document.getElementById('searchWrap').contains(e.target)) hideAC();
+});
+
+
+</script>
+</body>
+</html>
