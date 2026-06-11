@@ -23,7 +23,6 @@ body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',-apple-syste
 #userView{display:none}
 .header-title{text-align:center;color:#0046a0;margin-bottom:20px;font-size:20px;font-weight:700;letter-spacing:-.5px;word-break:keep-all}
 .year-tab{padding:8px 20px;font-size:14px;font-weight:600;border:2px solid #0046a0;background:#fff;color:#0046a0;border-radius:6px;cursor:pointer;transition:all .2s}
-.year-tab.pending{color:#9ca3af;border-color:#d1d5db;border-style:solid;background:#f9fafb;opacity:0.45}
 .year-tab.active{
   background:#0046a0;
   color:#fff;
@@ -113,11 +112,6 @@ mark.hit{
   border-radius:2px;
 }
 
-.tag-apt{
-  background:#f0f9ff;
-  color:#0369a1;
-  border:1px solid #bae6fd;
-}
 .search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;color:#999;cursor:pointer;display:none;line-height:1}
 
 /* 자동완성 드롭다운 */
@@ -178,14 +172,6 @@ mark.hit{
 
 .mid-tags-row{padding:8px 14px;border-top:1px solid #f0f4f8;display:flex;flex-wrap:wrap;gap:5px;background:#fafcff}
 
-.ac-item mark{
-  background: rgba(255, 246, 143, 0.62);
-  color: inherit;
-  font-weight: 700;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
 /* 빈 결과 */
 .empty{text-align:center;padding:40px 20px;color:#6b7280}
 .empty-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#374151}
@@ -198,18 +184,29 @@ mark.hit{
 
 /* 모바일 반응형 */
   @media (max-width:600px){
-    .header-title{font-size:18px}
+    /* 전체 여백 축소로 검색창 상단 배치 */
+    .container{margin:15px auto;padding:0 15px}
+    .header-title{font-size:18px;margin-bottom:12px}
     .year-tab{padding:7px 16px;font-size:13px}
     .year-note{font-size:11px;margin-top:6px}
     .search-input{font-size:16px}
+    
+    /* 결과 카드 압축 */
     .card-top{flex-direction:column}
+    .school-box{padding:12px 14px} /* 박스 내부 여백 축소 */
     .school-box.mid-box{border-left:none;border-top:1px solid #d1e8ff}
     .s-name{font-size:17px}
+    
+    /* 주소 및 태그 크기/여백 축소 */
+    .addr-block{padding:8px 12px}
+    .addr-row{padding:7px 10px;font-size:13px;margin-bottom:4px}
+    .mid-tags-row{padding:6px 12px}
+    .tag{padding:2px 7px;font-size:11px}
+    
+    /* 안내문 및 자동완성 */
     .notice-box{font-size:13px;padding:12px}
-    .notice-wrap{margin:14px 0 18px}
-    .notice-toggle{
-      width:100%;justify-content:center;font-size:14px;padding:9px 12px
-    }
+    .notice-wrap{margin:10px 0 14px}
+    .notice-toggle{width:100%;justify-content:center;font-size:14px;padding:9px 12px}
     .notice-line{font-size:13px;line-height:1.5}
     .notice-divider{margin:10px 0}
     .legend-badge{font-size:10px;padding:2px 7px}
@@ -309,7 +306,8 @@ const STATE = {
   dynamicMiddleList: '',
   acFocusIdx: -1,
   lastTokens: [],
-  lastHighlightTokens: []
+  lastHighlightTokens: [],
+  availableYears: []
 };
 const HOME_SVG = '<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
 
@@ -486,32 +484,57 @@ function parseCSV(text) {
 /* 2. 서버 업로드 파일 자동 탐지 및 로드 (Fetch API) */
 window.onload = async function() {
   const loadingView = document.getElementById('loadingView');
-  const today = new Date();
-  const y = today.getFullYear();
-  
-  const yearsToTry = [y, y + 1]; 
+  const thisYear = new Date().getFullYear();
 
-  for (const year of yearsToTry) {
-    try {
-      const response = await fetch(`./${year}.csv`);
-      if (response.ok) { 
+  // 탐색 대상 연도 목록 (-10 ~ +2)
+  const years = [];
+  for (let y = thisYear - 10; y <= thisYear + 2; y++) years.push(y);
+
+  // HEAD 요청 병렬 발송 → 존재하는 연도만 수집
+  const probes = await Promise.all(
+    years.map(y =>
+      fetch(`./${y}.csv`, { method: 'HEAD' })
+        .then(r => r.ok ? y : null)
+        .catch(() => null)
+    )
+  );
+  const foundYears = probes
+    .filter(v => v !== null)
+    .sort((a, b) => a - b);
+
+  // 최신 2개 연도만 선택
+  const yearsToLoad = foundYears.slice(-2);
+
+  // GET 요청·디코딩·파싱 병렬 처리
+  await Promise.all(
+    yearsToLoad.map(async (year) => {
+      try {
+        const response = await fetch(`./${year}.csv`);
+        if (!response.ok) return;
+
         const buffer = await response.arrayBuffer();
         let text = new TextDecoder('utf-8').decode(buffer);
-        
         if (text.includes('\uFFFD')) {
-          try { text = new TextDecoder('euc-kr').decode(buffer); } catch (err) {}
+          try {
+            text = new TextDecoder('euc-kr').decode(buffer);
+          } catch (err) {}
         }
-        
         STATE.database[String(year)] = parseCSV(text);
+      } catch (error) {
+        console.error(`${year}.csv 로드 실패:`, error);
       }
-    } catch (error) {
-      console.error(`${year}.csv 로드 실패:`, error);
-    }
-  }
+    })
+  );
+
+  STATE.availableYears = Object.keys(STATE.database).sort();
 
   loadingView.style.display = 'none';
   document.getElementById('userView').style.display = 'block';
-  switchYear(STATE.database[String(y)] ? String(y) : String(y + 1));
+
+  const defaultYear = STATE.availableYears.length > 0
+    ? STATE.availableYears[STATE.availableYears.length - 1]
+    : null;
+  switchYear(defaultYear);
 
   initNoticeToggle();  
 };
@@ -522,18 +545,21 @@ function switchYear(year){
   const container = document.getElementById('tabContainer');
   container.replaceChildren();
   
-  const baseYear = new Date().getFullYear();
-  [baseYear, baseYear + 1].forEach(y => {
-    const yearStr = String(y);
+  if (!STATE.availableYears || STATE.availableYears.length === 0) {
+    document.getElementById('searchArea').style.display = 'none';
+    document.getElementById('emptyMessage').style.display = 'block';
+    document.getElementById('emptyText').innerText = '현재 등록된 통학구역 자료가 없습니다.';
+    return;
+  }
+
+  STATE.availableYears.forEach(yearStr => {
     const btn = document.createElement('button');
     const isActive = (yearStr === year);
-    const isPending = !STATE.database[yearStr];
-    btn.className = 'year-tab' + (isActive ? ' active' : '') + (isPending && !isActive ? ' pending' : '');
+    btn.className = 'year-tab' + (isActive ? ' active' : '');
     btn.onclick = () => switchYear(yearStr);
     btn.innerText = yearStr + '학년도';
     container.appendChild(btn);
-  });
-  
+  });  
   if(STATE.database[year]){
     document.getElementById('emptyMessage').style.display = 'none';
     document.getElementById('searchArea').style.display = 'block';
@@ -542,7 +568,7 @@ function switchYear(year){
   } else {
     document.getElementById('searchArea').style.display = 'none';
     document.getElementById('emptyMessage').style.display = 'block';
-    document.getElementById('emptyText').innerText = year + '학년도 통학구역 정보는 11월 중 반영 예정입니다.';
+    document.getElementById('emptyText').innerText = year + '현재 등록된 통학구역 자료가 없습니다.';
   }
 }
 
@@ -765,9 +791,10 @@ function initNoticeToggle(){
   const content = document.getElementById('noticeContent');
   if(!btn || !content || btn.dataset.bound === '1') return;
 
-  content.hidden = false;
-  btn.textContent = '안내문 접기';
-  btn.setAttribute('aria-expanded', 'true');
+  const isMobile = window.innerWidth <= 600;
+  content.hidden = isMobile;
+  btn.textContent = isMobile ? '안내문 펼치기' : '안내문 접기';
+  btn.setAttribute('aria-expanded', String(!isMobile));
 
   btn.dataset.bound = '1';
   btn.addEventListener('click', ()=>{
@@ -961,7 +988,7 @@ function renderAddrBlock(r){
   const ban   = getField(r,['행정리(반)','행정리']);
   const bunji = getField(r,['구역(번지)','구역']);
   const apt   = getField(r,['공동주택명','공동주택']);
-  const eJoint= getField(r,['초등학교 공동학구','초등학교 공동학구','초 공동학구']);
+  const eJoint= getField(r,['초등학교 공동학구','공동학구 초등학교','초 공동학구']);
   const eWay  = getField(r,['공동(일방)학구 초등학교','초등학교 공동(일방)학구','초 공동(일방)학구']);
   const excl  = getField(r,['제외 구역(번지)','제외구역(번지)','제외 구역','제외구역']);
   const note  = getField(r,['참고']);
