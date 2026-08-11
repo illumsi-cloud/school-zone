@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="충주시 초·중학교 통학구역 및 중학구 간편 검색 서비스">
-<meta property="og:title" content="충주시 통학구역 검색 서비스">
+<meta name="description" content="충주시 초등학교 통학구역 및 중학구 간편 검색 서비스">
+<meta property="og:title" content="충주시 초등학교 통학구역 및 중학구 간편 검색 서비스">
 <meta property="og:description" content="동이나 아파트를 입력하여 배정 초등학교와 중학교를 쉽게 확인하세요.">
-<title>충주 초·중학교 통학구역 검색 시스템</title>
+<title>충주 초등학교 통학구역 및 중학구 간편 검색</title>
 <style>
 /* 기본 레이아웃 */
 *{box-sizing:border-box}
@@ -669,7 +669,8 @@ function showAC() {
 
     if (x === q) return isFirstToken ? 2000000 : 1200000;
 
-    const isExactWord = x.startsWith(q + ' ') || x.endsWith(' ' + q) || x.includes(' ' + q + ' ');
+    const rawQ = String(queryToken).trim().toLowerCase();
+    const isExactWord = String(text).trim().toLowerCase().split(/\s+/).includes(rawQ);
     if (isExactWord) return isFirstToken ? 1800000 : 1000000;
 
     if (x.startsWith(q)) return isFirstToken ? 1400000 : 800000;
@@ -911,8 +912,36 @@ function performSearch(q){
     });
 
     return (matchedAll && total > 0) ? { row:r, score:total, idx, matchedTokens } : null;
-  }).filter(Boolean).sort((a,b)=>{
+  }).filter(Boolean);
+
+  /* 동점 정렬용: 결과셋에서 '(큰학교)'로 지목된 학교명 수집 */
+  const bigNames = new Set();
+  for(const o of scored){
+    const ew = getField(o.row,['공동(일방)학구 초등학교','초등학교 공동(일방)학구','초 공동(일방)학구'])||'';
+    const reBig = /([^\/,\s]+?)\s*\(\s*큰학교\s*\)/g; let mBig;
+    while((mBig = reBig.exec(ew))!==null){ bigNames.add(norm(mBig[1])); }
+  }
+  function rowTier(row){
+    const name = norm(getField(row,['초등학교명','초등학교']));
+    const ej = getField(row,['초등학교 공동학구','공동학구 초등학교','초 공동학구'])||'';
+    const ew = getField(row,['공동(일방)학구 초등학교','초등학교 공동(일방)학구','초 공동(일방)학구'])||'';
+    const hasJoint = norm(ej).length>0 || norm(ew).length>0;
+    if(bigNames.has(name)) return 1;   /* ② 공동학구 큰학교 */
+    if(!hasJoint) return 0;            /* ① 일반 배정 본교 */
+    return 2;                          /* ③ 나머지 공동학구 학교(가나다순) */
+  }
+  scored.sort((a,b)=>{
+    /* 1차: 검색어 관련도(점수) — 변경 금지(동·아파트 오매칭 방지) */
     if(b.score !== a.score) return b.score - a.score;
+    /* 2차: 동점 그룹 내에서만 본교 우선 */
+    const ta = rowTier(a.row), tb = rowTier(b.row);
+    if(ta !== tb) return ta - tb;
+    if(ta === 2){
+      const na = getField(a.row,['초등학교명','초등학교'])||'';
+      const nb = getField(b.row,['초등학교명','초등학교'])||'';
+      const c = na.localeCompare(nb, 'ko');
+      if(c !== 0) return c;            /* ③ 가나다순 */
+    }
     return a.idx - b.idx;
   });
 
